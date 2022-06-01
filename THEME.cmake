@@ -8,7 +8,7 @@ message(STATUS "Branding: ${APPLICATION_NAME}")
 
 # Default suffix if the theme doesn't define one
 if(NOT DEFINED APPLICATION_VIRTUALFILE_SUFFIX)
-    set(APPLICATION_VIRTUALFILE_SUFFIX "${APPLICATION_SHORTNAME}_virtual" CACHE STRING "Virtual file suffix (not including the .)")
+    set(APPLICATION_VIRTUALFILE_SUFFIX "${APPLICATION_ICON_NAME}_virtual" CACHE STRING "Virtual file suffix (not including the .)")
 endif()
 
 # Default dbus name and path
