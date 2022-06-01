@@ -338,7 +338,7 @@ QString Theme::forceConfigAuthType() const
 
 QString Theme::defaultClientFolder() const
 {
-    return appName();
+    return appNameGUI();
 }
 
 void Theme::setSystrayUseMonoIcons(bool mono)
