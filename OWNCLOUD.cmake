@@ -5,7 +5,7 @@ set( APPLICATION_DOMAIN     "files.fm/sync-share" )
 set( APPLICATION_VENDOR     "Files.fm" )
 set( APPLICATION_UPDATE_URL "https://updates.owncloud.com/client/" CACHE STRING "URL for updater" )
 set( APPLICATION_ICON_NAME  "files.fm-sync" )
-
+set( CPACK_NSIS_MODIFY_PATH  "ON" )
 
 set( LINUX_PACKAGE_SHORTNAME "owncloud" )
 
