@@ -16,6 +16,7 @@
 #include <Guiddef.h>
 #include "OCContextMenuRegHandler.h"
 #include "OCContextMenuFactory.h"
+#include "WinShellExtConstants.h"
 
 // gdiplus min/max
 using namespace std;
@@ -48,8 +49,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void **ppv)
 {
 	HRESULT hr = CLASS_E_CLASSNOTAVAILABLE;
+	GUID guid;
 
-	if (IsEqualCLSID(CLSID_FileContextMenuExt, rclsid))	{
+    hr = CLSIDFromString(CONTEXT_MENU_GUID, (LPCLSID)&guid);
+    if (!SUCCEEDED(hr)) {
+        return hr;
+    }
+
+	if (IsEqualCLSID(guid, rclsid))	{
 		hr = E_OUTOFMEMORY;
 
 		OCContextMenuFactory *pClassFactory = new OCContextMenuFactory();
