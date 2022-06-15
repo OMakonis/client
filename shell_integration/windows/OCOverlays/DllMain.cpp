@@ -14,7 +14,7 @@
 
 #include "OCOverlayRegistrationHandler.h"
 #include "OCOverlayFactory.h"
-#include "WinShellExtConstants.h"
+#include "OverlayConstants.h"
 
 HINSTANCE instanceHandle = NULL;
 
