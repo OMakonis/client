@@ -10,7 +10,7 @@ add_library (FMOverlays MODULE
 target_link_libraries(FMOverlays
     FMUtil)
 
-install(TARGETSFMOverlays
+install(TARGETS FMOverlays
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
