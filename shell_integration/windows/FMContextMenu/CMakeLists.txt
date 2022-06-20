@@ -1,20 +1,20 @@
-add_library (FMContextMenu MODULE
+add_library (OCContextMenu MODULE
     dllmain.cpp
-    FMClientInterface.cpp
-    FMContextMenu.cpp
-    FMContextMenuFactory.cpp
-    FMContextMenuRegHandler.cpp
-    FMContextMenu.rc
-    FMContextMenu.def
+    OCClientInterface.cpp
+    OCContextMenu.cpp
+    OCContextMenuFactory.cpp
+    OCContextMenuRegHandler.cpp
+    OCContextMenu.rc
+    OCContextMenu.def
 )
 
-target_link_libraries(FMContextMenu
-                      FMUtil
+target_link_libraries(OCContextMenu
+                      OCUtil
                       crypt32
                       gdiplus)
-target_compile_definitions(FMContextMenu PRIVATE JSON_NOEXCEPTION)
+target_compile_definitions(OCContextMenu PRIVATE JSON_NOEXCEPTION)
 
-install(TARGETS FMContextMenu
+install(TARGETS OCContextMenu
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

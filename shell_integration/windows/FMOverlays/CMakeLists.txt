@@ -1,14 +1,14 @@
-add_library(FMOverlays MODULE
-    DllMain.cpp
-    FMOverlay.cpp
-    FMOverlayFactory.cpp
-    FMOverlayRegistrationHandler.cpp
-    FMOverlay.rc
-    FMOverlays.def
+add_library (FMOverlays MODULE
+DllMain.cpp
+FMOverlay.cpp
+FMOverlayFactory.cpp
+FMOverlayRegistrationHandler.cpp
+FMOverlay.rc
+FMOverlays.def
 )
 
-target_link_libraries(FMOverlays
-    FMUtil)
+target_link_librariesFMOverlays
+FMUtil)
 
 install(TARGETSFMOverlays
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
