@@ -38,7 +38,7 @@ public:
 
     QString contextMenuTitle() const
     {
-        return _strings.value("CONTEXT_MENU_TITLE", "Files.fm");
+        return _strings.value("CONTEXT_MENU_TITLE", "ownCloud");
     }
     QString shareActionTitle() const
     {
