@@ -1,4 +1,4 @@
-add_library (FMContextMenu MODULE
+add_library(FMContextMenu MODULE
     dllmain.cpp
     FMClientInterface.cpp
     FMContextMenu.cpp

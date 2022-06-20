@@ -16,7 +16,7 @@
 
 #include <windows.h>
 
-class __declspec(dllexport) OCOverlayRegistrationHandler 
+class __declspec(dllexport) FMOverlayRegistrationHandler 
 {
     public:
         static HRESULT MakeRegistryEntries(const CLSID& clsid, PCWSTR fileType);
