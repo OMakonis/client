@@ -1,4 +1,4 @@
-add_library (OCContextMenu MODULE
+add_library(OCContextMenu MODULE
     dllmain.cpp
     OCClientInterface.cpp
     OCContextMenu.cpp

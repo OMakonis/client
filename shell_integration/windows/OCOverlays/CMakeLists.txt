@@ -1,5 +1,5 @@
-add_library (FMOverlays MODULE
-DllMain.cpp
+add_libraryFMOverlays MODULE
+    DllMain.cpp
 FMOverlay.cpp
 FMOverlayFactory.cpp
 FMOverlayRegistrationHandler.cpp
