@@ -42,7 +42,7 @@
 
 class CommunicationSocket;
 
-class OCClientInterface
+class FMClientInterface
 {
 public:
     struct ContextMenuInfo {

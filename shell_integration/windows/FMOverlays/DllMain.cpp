@@ -94,13 +94,13 @@ HRESULT RegisterCLSID(LPCOLESTR guidStr, PCWSTR overlayStr, PCWSTR szModule)
         return hResult;
     }
 
-    hResult = OCOverlayRegistrationHandler::RegisterCOMObject(szModule, OVERLAY_GENERIC_NAME, guid);
+    hResult = FMOverlayRegistrationHandler::RegisterCOMObject(szModule, OVERLAY_GENERIC_NAME, guid);
 
     if (!SUCCEEDED(hResult)) {
         return hResult;
     }
 
-    hResult = OCOverlayRegistrationHandler::MakeRegistryEntries(guid, overlayStr);
+    hResult = FMOverlayRegistrationHandler::MakeRegistryEntries(guid, overlayStr);
 
     return hResult;
 }
@@ -116,13 +116,13 @@ HRESULT UnregisterCLSID(LPCOLESTR guidStr, PCWSTR overlayStr)
         return hResult;
     }
 
-    hResult = OCOverlayRegistrationHandler::UnregisterCOMObject(guid);
+    hResult = FMOverlayRegistrationHandler::UnregisterCOMObject(guid);
 
     if (!SUCCEEDED(hResult)) {
         return hResult;
     }
 
-    hResult = OCOverlayRegistrationHandler::RemoveRegistryEntries(overlayStr);
+    hResult = FMOverlayRegistrationHandler::RemoveRegistryEntries(overlayStr);
 
     return hResult;
 }
