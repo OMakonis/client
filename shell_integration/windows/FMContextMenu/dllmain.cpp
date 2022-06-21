@@ -23,7 +23,8 @@ using namespace std;
 #include <gdiplus.h>
 
 // {841A0AAD-AA11-4B50-84D9-7F8E727D77D7}
-static const GUID CLSID_FileContextMenuExt = { 0x841a0aad, 0xaa11, 0x4b50, { 0x84, 0xd9, 0x7f, 0x8e, 0x72, 0x7d, 0x77, 0xd7 } };
+// {7A969552-3605-4086-AFC2-F7028AC70369}
+static const GUID CLSID_FileContextMenuExt = { 0x7a969552, 0x3605, 0x4086, { 0xaf, 0xc2, 0xf7, 0x02, 0x8a, 0xc7, 0x03, 0x69 } };
 
 HINSTANCE   g_hInst = NULL;
 long        g_cDllRef = 0;
