@@ -1,5 +1,5 @@
 set( APPLICATION_NAME       "Files.fm Sync" )
-set( APPLICATION_SHORTNAME  "ownCloud" )
+set( APPLICATION_SHORTNAME  "Files.fm Sync" )
 set( APPLICATION_EXECUTABLE "files.fm-sync" )
 set( APPLICATION_DOMAIN     "files.fm/sync-share" )
 set( APPLICATION_VENDOR     "Files.fm" )
