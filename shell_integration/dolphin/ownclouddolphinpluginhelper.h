@@ -44,6 +44,10 @@ public:
     {
         return _strings.value("SHARE_MENU_TITLE", "Share...");
     }
+    QString contextMenuIconName() const
+    {
+        return _strings.value("CONTEXT_MENU_ICON", "files.fm-sync");
+    }
     QPixmap clientIcon() const
     {
         return _clientIcon;
