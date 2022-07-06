@@ -46,7 +46,7 @@ public:
     }
     QString contextMenuIconName() const
     {
-        return _strings.value("CONTEXT_MENU_ICON", "owncloud");
+        return _strings.value("CONTEXT_MENU_ICON", "files.fm-sync");
     }
     QPixmap clientIcon() const
     {
