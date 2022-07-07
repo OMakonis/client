@@ -68,7 +68,7 @@ void OwncloudDolphinPluginHelper::sendGetClientIconCommand(int size)
     const QByteArray cmd = QByteArrayLiteral("V2/GET_CLIENT_ICON:");
     const QByteArray newLine = QByteArrayLiteral("\n");
     const QJsonObject args { { QStringLiteral("size"), size } };
-    const QJsonObject obj { { QStringLiteral("id"), QString::number(_msgId++) }, { QStringLiteral("arguments"), args } };
+    const QJsonObject obj { { QStringLiteral("id"), QString::number(1) }, { QStringLiteral("arguments"), args } };
     const auto json = QJsonDocument(obj).toJson(QJsonDocument::Compact);
     sendCommand(QByteArray(cmd + json + newLine));
 }
