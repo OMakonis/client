@@ -60,10 +60,10 @@ Optional<Vfs::Mode> Vfs::modeFromString(const QString &str)
     // Note: Strings are used for config and must be stable
     if (str == QLatin1String("off")) {
         return Off;
-    } else if (str == QLatin1String("suffix")) {
-        return WithSuffix;
     } else if (str == QLatin1String("wincfapi")) {
         return WindowsCfApi;
+    } else if (str == QLatin1String("suffix")) {
+        return WithSuffix;
     }
     return {};
 }
