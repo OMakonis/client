@@ -16,7 +16,7 @@
 
 #include "common/syncjournaldb.h"
 #include "propagatedownload.h"
-#include "vfs/cfapi/vfs_cfapi.h"
+#include "vfs/win/vfs_cfapi.h"
 #include <clientsideencryptionjobs.h>
 
 #include "filesystem.h"
