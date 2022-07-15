@@ -10,12 +10,12 @@ if (WIN32)
         vfs_cfapi.cpp
     )
 
-    target_link_libraries(files_vfs_cfapi PRIVATE
+    target_link_libraries(files.fm-sync_cfapi PRIVATE
         Nextcloud::sync
         cldapi
     )
 
-    set_target_properties(files_vfs_cfapi
+    set_target_properties(files.fm-sync_cfapi
       PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY
           ${BIN_OUTPUT_DIRECTORY}
@@ -31,17 +31,17 @@ if (WIN32)
           ${APPLICATION_EXECUTABLE}sync_vfs_cfapi
     )
 
-    target_include_directories("files_vfs_cfapi" BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR} INTERFACE ${CMAKE_BINARY_DIR})
+    target_include_directories("files.fm-sync_cfapi" BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR} INTERFACE ${CMAKE_BINARY_DIR})
 
     set(vfs_installdir "${PLUGINDIR}")
 
-    generate_export_header(files_vfs_cfapi
-        BASE_NAME files_vfs_cfapi
+    generate_export_header(files.fm-sync_cfapi
+        BASE_NAME files.fm-sync_cfapi
         EXPORT_MACRO_NAME NEXTCLOUD_CFAPI_EXPORT
         EXPORT_FILE_NAME cfapiexport.h
     )
 
-    install(TARGETS files_vfs_cfapi
+    install(TARGETS files.fm-sync_cfapi
       LIBRARY DESTINATION "${vfs_installdir}"
       RUNTIME DESTINATION "${vfs_installdir}"
     )
