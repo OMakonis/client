@@ -42,7 +42,7 @@ if (WIN32)
     )
 
     install(TARGETS owncloud_vfs_cfapi
-      LIBRARY DESTINATION "${vfs_installdir}"
-      RUNTIME DESTINATION "${vfs_installdir}"
+      LIBRARY DESTINATION "${KDE_INSTALL_PLUGINDIR}"
+      RUNTIME DESTINATION "${KDE_INSTALL_PLUGINDIR}"
     )
 endif()
