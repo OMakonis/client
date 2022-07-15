@@ -1,6 +1,4 @@
-add_definitions(-D_WIN32_WINNT=_WIN32_WINNT_WIN10)
-
-add_library(owncloud_vfs_cfapi SHARED
+add_library(owncloud_vfs_cfapi MODULE
     cfapiwrapper.h
     cfapiwrapper.cpp
     hydrationjob.h
@@ -9,9 +7,8 @@ add_library(owncloud_vfs_cfapi SHARED
     vfs_cfapi.cpp
 )
 
-target_link_libraries(owncloud_vfs_cfapi PRIVATE
-    Nextcloud::sync
-    cldapi
+target_link_libraries(owncloud_vfs_cfapi 
+    libsync
 )
 
 set_target_properties(owncloud_vfs_cfapi
