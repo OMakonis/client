@@ -12,6 +12,7 @@ if (WIN32)
 
     target_link_libraries(files.fm-sync_vfs_cfapi PRIVATE
         libsync
+        cldapi
     )
 
     set_target_properties(files.fm-sync_vfs_cfapi
