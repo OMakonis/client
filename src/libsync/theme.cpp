@@ -393,7 +393,7 @@ QString Theme::gitSHA1(VersionFormat format) const
     if (!aboutShowCopyright()) {
         return gitShahSort;
     }
-    const auto gitUrl = QStringLiteral("https://github.com/owncloud/client/commit/%1").arg(gitSha);
+    const auto gitUrl = QStringLiteral("https://github.com/filesfm/client/commit/%1").arg(gitSha);
     switch (format) {
     case Theme::VersionFormat::OneLiner:
         Q_FALLTHROUGH();
