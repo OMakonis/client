@@ -909,7 +909,7 @@ void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath, QObject 
 {
     // Retrieve the new link by PROPFIND
     PropfindJob *job = new PropfindJob(account, remotePath, target);
-    job->setProperties({ QByteArrayLiteral("http://owncloud.org/ns:privatelink") });
+    job->setProperties({ QByteArrayLiteral("https://files.fm/ns:privatelink") });
     job->setTimeout(10 * 1000);
     QObject::connect(job, &PropfindJob::result, target, [=](const QMap<QString, QString> &result) {
         auto privateLinkUrl = result[QStringLiteral("privatelink")];
