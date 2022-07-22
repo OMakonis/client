@@ -183,6 +183,6 @@ QString HttpCredentialsGui::requestAppPasswordText(const Account *account)
 }
 QString HttpCredentialsGui::requestPasswordReset(const Account *account)
 {
-    return tr("<a href=\"https://files.fm/#forgot_password\">Click here</a> to reset your password in the web interface.")     
+    return tr("<a href=\"https://files.fm/#forgot_password\">Click here</a> to reset your password in the web interface.");    
 }
 } // namespace OCC
