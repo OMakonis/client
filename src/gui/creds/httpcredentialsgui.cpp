@@ -123,6 +123,7 @@ void HttpCredentialsGui::showDialog()
                           Utility::escape(_user),
                           Utility::escape(_account->displayName()));
 
+    QString reqTxt = requestAppPasswordText(_account);
     if (!reqTxt.isEmpty()) {
         msg += QLatin1String("<br>") + reqTxt + QLatin1String("<br>");
     }
