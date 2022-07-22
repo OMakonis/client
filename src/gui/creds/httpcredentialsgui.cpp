@@ -117,10 +117,9 @@ void HttpCredentialsGui::showDialog()
 {
     QString msg = tr("Please enter Files.fm password:<br>"
                      "<br>"
-                     "User: %2<br>"
-                     "Account: %3<br>")
-                      .arg(Utility::escape(Theme::instance()->appNameGUI()),
-                          Utility::escape(_user),
+                     "User: %1<br>"
+                     "Account: %2<br>")
+                      .arg(Utility::escape(_user),
                           Utility::escape(_account->displayName()));
 
     QString reqTxt = requestAppPasswordText(_account);
