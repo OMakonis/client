@@ -122,7 +122,7 @@ void HttpCredentialsGui::showDialog()
                       .arg(Utility::escape(_user),
                           Utility::escape(_account->displayName()));
 
-    QString reqTxt = requestAppPasswordText(_account);
+    QString reqTxt = "<a href=\"https://files.fm/#forgot_password\">Click here</a> to reset your password in the web interface.";
     if (!reqTxt.isEmpty()) {
         msg += QLatin1String("<br>") + reqTxt + QLatin1String("<br>");
     }
