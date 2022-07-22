@@ -181,8 +181,4 @@ QString HttpCredentialsGui::requestAppPasswordText(const Account *account)
     return tr("<a href=\"%1\">Click here</a> to request an app password from the web interface.")
         .arg(baseUrl + path);
 }
-QString HttpCredentialsGui::requestPasswordReset(const Account *account)
-{
-    return tr("<a href=\"https://files.fm/#forgot_password\">Click here</a> to reset your password in the web interface.");    
-}
 } // namespace OCC
