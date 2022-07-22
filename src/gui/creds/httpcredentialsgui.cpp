@@ -115,11 +115,11 @@ void HttpCredentialsGui::asyncAuthResult(OAuth::Result r, const QString &user,
 
 void HttpCredentialsGui::showDialog()
 {
-    QString msg = tr("Please enter %1 password:<br>"
+    QString msg = tr("Please enter Files.fm password:<br>"
                      "<br>"
                      "User: %2<br>"
                      "Account: %3<br>")
-                      .arg(Utility::escape(Theme::instance()->vendor()),
+                      .arg(Utility::escape(Theme::instance()->appNameGUI()),
                           Utility::escape(_user),
                           Utility::escape(_account->displayName()));
 
