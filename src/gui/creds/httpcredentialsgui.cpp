@@ -167,18 +167,14 @@ QString HttpCredentialsGui::requestAppPasswordText(const Account *account)
 
     // Version may not be available before login on new servers!
     if (!version || version >= Account::makeServerVersion(10, 0, 0)) {
-        path = QLatin1String("/https://files.fm/account#account_data");
+        path = QLatin1String("/https://files.fm/#forgot_password");
     } else if (version >= Account::makeServerVersion(9, 1, 0)) {
-        path = QLatin1String("/https://files.fm/account#account_data");
+        path = QLatin1String("/https://files.fm/#forgot_password");
     } else {
         // Older server than 9.1 does not have the feature to request App Password
         return QString();
     }
-
-    auto baseUrl = account->url().toString();
-    if (baseUrl.endsWith('/'))
-        baseUrl.chop(1);
-    return tr("<a href=\"%1\">Click here</a> to request an app password from the web interface.")
-        .arg(baseUrl + path);
+    return tr("<a href=\"%1\">Click here</a> to reset your password from the web interface.")
+        .arg(path);
 }
 } // namespace OCC
