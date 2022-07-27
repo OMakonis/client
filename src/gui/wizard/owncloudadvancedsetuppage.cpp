@@ -69,7 +69,7 @@ OwncloudAdvancedSetupPage::OwncloudAdvancedSetupPage()
     connect(_ui.rSyncEverything, &QRadioButton::toggled, _ui.syncEverythingWidget, &QWidget::setEnabled);
     connect(_ui.rManualFolder, &QRadioButton::toggled, _ui.whereToSyncWidget, &QWidget::setDisabled);
 
-    QIcon appIcon = theme->applicationIcon();
+    QIcon appIcon = theme->themeUniversalIcon(QStringLiteral(APPLICATION_ICON_NAME "setup-icon"));
     _ui.lServerIcon->setPixmap(appIcon.pixmap(_ui.lServerIcon->size()));
     if (theme->wizardHideExternalStorageConfirmationCheckbox()) {
         _ui.confCheckBoxExternal->hide();
