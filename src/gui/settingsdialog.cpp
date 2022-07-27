@@ -452,7 +452,7 @@ void SettingsDialog::accountRemoved(const AccountStatePtr &s)
 
 void SettingsDialog::customizeStyle()
 {
-    QString highlightColor(palette().highlight().color().name());
+    QString highlightColor("red");
     QString highlightTextColor(palette().highlightedText().color().name());
     QString dark(palette().dark().color().name());
     QString background(palette().base().color().name());
