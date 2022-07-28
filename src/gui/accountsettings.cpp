@@ -820,7 +820,10 @@ void AccountSettings::slotAccountStateChanged()
         ui->sslButton->updateAccountState(_accountState);
         ui->sslButton->setStyleSheet(
             "QToolButton { "
-            "    padding: 1px 3px 0px 1px;"
+            "    padding: 1px 0px 0px 1px;"
+            "}"
+            "QToolButton::menu-indicator { "
+            "    width: 0px;" 
             "}"
         );
         AccountPtr account = _accountState->account();
