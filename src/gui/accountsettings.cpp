@@ -209,7 +209,7 @@ void AccountSettings::createAccountToolbox()
     ui->_accountToolbox->setText(tr("Account") + QLatin1Char(' '));
     ui->_accountToolbox->setMenu(menu);
     ui->_accountToolbox->setPopupMode(QToolButton::InstantPopup);
-    ui->_accountToolbox->setStyleSheet("QToolButton::menu-indicator { subcontrol-position: right center; }");
+    ui->_accountToolbox->setStyleSheet("QToolButton::menu-indicator { padding: 1em; }");
 
 }
 
