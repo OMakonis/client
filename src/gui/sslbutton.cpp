@@ -34,7 +34,6 @@ SslButton::SslButton(QWidget *parent)
 {
     setPopupMode(QToolButton::InstantPopup);
     setAutoRaise(true);
-    Qt::NoArrow;
 
     _menu = new QMenu(this);
     QObject::connect(_menu, &QMenu::aboutToShow,
@@ -167,8 +166,7 @@ void SslButton::updateAccountState(AccountState *accountState)
     } else {
         setVisible(true);
     }
-    _accountState = accountState;
-
+    _accountState = accountState; 
     AccountPtr account = _accountState->account();
     if (account->url().scheme() == QLatin1String("https")) {
         setIcon(Utility::getCoreIcon(QStringLiteral("lock-https")));
