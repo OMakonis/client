@@ -34,6 +34,7 @@ SslButton::SslButton(QWidget *parent)
 {
     setPopupMode(QToolButton::InstantPopup);
     setAutoRaise(true);
+    Qt::LeftArrow;
 
     _menu = new QMenu(this);
     QObject::connect(_menu, &QMenu::aboutToShow,
