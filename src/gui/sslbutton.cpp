@@ -154,7 +154,7 @@ QMenu *SslButton::buildCertMenu(QMenu *parent, const QSslCertificate &cert,
     QMenu *menu = new QMenu(parent);
     menu->menuAction()->setText(txt);
     menu->addAction(action);
-    menu->_accountToolbox->setStyleSheet("QToolButton::menu-indicator { image: none; }");
+    menu->setStyleSheet("QToolButton::menu-indicator { image: none; }");
 
     return menu;
 }
