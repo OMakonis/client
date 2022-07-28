@@ -209,6 +209,7 @@ void AccountSettings::createAccountToolbox()
     ui->_accountToolbox->setText(tr("Account") + QLatin1Char(' '));
     ui->_accountToolbox->setMenu(menu);
     ui->_accountToolbox->setPopupMode(QToolButton::InstantPopup);
+    ui->_accountToolbox->setArrowType( Qt::DownArrow );
 }
 
 QString AccountSettings::selectedFolderAlias() const
