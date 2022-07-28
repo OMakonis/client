@@ -39,6 +39,7 @@ SslButton::SslButton(QWidget *parent)
     QObject::connect(_menu, &QMenu::aboutToShow,
         this, &SslButton::slotUpdateMenu);
     setMenu(_menu);
+    _menu->setStyleSheet("QToolButton::menu-indicator { image: none; }");
 }
 
 static QString addCertDetailsField(const QString &key, const QString &value)
