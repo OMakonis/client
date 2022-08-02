@@ -183,7 +183,7 @@ QIcon Theme::themeUniversalIcon(const QString &name, Theme::IconType iconType) c
 
 QIcon Theme::themeTrayIcon(const QString &name, bool sysTrayMenuVisible, IconType iconType) const
 {
-    auto icon = loadIcon(systrayIconFlavor(true, sysTrayMenuVisible), name, iconType);
+    auto icon = loadIcon(systrayIconFlavor(_mono, sysTrayMenuVisible), name, iconType);
 #ifdef Q_OS_MAC
     // This defines the icon as a template and enables automatic macOS color handling
     // See https://bugreports.qt.io/browse/QTBUG-42109
