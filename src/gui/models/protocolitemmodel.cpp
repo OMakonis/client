@@ -12,6 +12,7 @@
  * for more details.
  */
 #include "protocolitemmodel.h"
+#include owncloudtheme.h
 
 #include "account.h"
 #include "accountstate.h"
