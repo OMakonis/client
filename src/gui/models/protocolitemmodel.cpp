@@ -30,6 +30,10 @@ ProtocolItemModel::ProtocolItemModel(size_t size, bool issueMode, QObject *paren
     , _issueMode(issueMode)
 {
 }
+ownCloudTheme::ownCloudTheme()
+    : Theme()
+{
+}
 
 int ProtocolItemModel::rowCount(const QModelIndex &parent) const
 {
