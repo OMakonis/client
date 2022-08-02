@@ -12,7 +12,6 @@
  * for more details.
  */
 #include "protocolitemmodel.h"
-#include "owncloudtheme.h"
 
 #include "account.h"
 #include "accountstate.h"
@@ -29,10 +28,6 @@ ProtocolItemModel::ProtocolItemModel(size_t size, bool issueMode, QObject *paren
     : QAbstractTableModel(parent)
     , _data(size)
     , _issueMode(issueMode)
-{
-}
-ownCloudTheme::ownCloudTheme()
-    : Theme()
 {
 }
 
