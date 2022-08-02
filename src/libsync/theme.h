@@ -452,6 +452,7 @@ protected:
 #ifndef TOKEN_AUTH_ONLY
     QIcon themeUniversalIcon(const QString &name, IconType iconType = IconType::BrandedIcon) const;
     QIcon themeTrayIcon(const QString &name, bool sysTrayMenuVisible = false, IconType iconType = IconType::BrandedIconWithFallbackToVanillaIcon) const;
+    QIcon themeActionIcon(const QString &name) const;
     QIcon themeIcon(const QString &name, IconType iconType = IconType::BrandedIconWithFallbackToVanillaIcon) const;
 #endif
     Theme();
