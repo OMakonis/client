@@ -98,9 +98,9 @@ public:
     bool automaticLogDir() const;
     void setAutomaticLogDir(bool enabled);
 
-    /** Number of log files to keep */
-    int automaticDeleteOldLogs() const;
-    void setAutomaticDeleteOldLogs(int number);
+    /** Wheter the automaticLogDir should expire logs, and after how many hours */
+    Optional<std::chrono::hours> automaticDeleteOldLogsAge() const;
+    void setAutomaticDeleteOldLogsAge(Optional<std::chrono::hours> expireTime);
 
     /** Whether to log http traffic */
     void setLogHttp(bool b);

@@ -78,6 +78,7 @@ protected slots:
     void slotDisableVfsCurrentFolder();
     void slotSetCurrentFolderAvailability(PinState state);
     void slotFolderWizardAccepted();
+    void slotFolderWizardRejected();
     void slotDeleteAccount();
     void slotToggleSignInState();
     [[deprecated]] void refreshSelectiveSyncStatus();

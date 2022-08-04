@@ -408,17 +408,15 @@ void AccountSettings::slotFolderListClicked(const QModelIndex &indx)
 
 void AccountSettings::slotAddFolder()
 {
-    FolderMan::instance()->setSyncEnabled(false); // do not start more syncs.
+    FolderMan *folderMan = FolderMan::instance();
+    folderMan->setSyncEnabled(false); // do not start more syncs.
 
     FolderWizard *folderWizard = new FolderWizard(_accountState->account(), ocApp()->gui()->settingsDialog());
     folderWizard->setAttribute(Qt::WA_DeleteOnClose);
     folderWizard->resize(ocApp()->gui()->settingsDialog()->sizeHintForChild());
 
     connect(folderWizard, &QDialog::accepted, this, &AccountSettings::slotFolderWizardAccepted);
-    connect(folderWizard, &QDialog::rejected, this, [] {
-        qCInfo(lcAccountSettings) << "Folder wizard cancelled";
-        FolderMan::instance()->setSyncEnabled(true);
-    });
+    connect(folderWizard, &QDialog::rejected, this, &AccountSettings::slotFolderWizardRejected);
     folderWizard->open();
     ocApp()->gui()->raiseDialog(folderWizard);
 }
@@ -427,11 +425,13 @@ void AccountSettings::slotAddFolder()
 void AccountSettings::slotFolderWizardAccepted()
 {
     FolderWizard *folderWizard = qobject_cast<FolderWizard *>(sender());
+    FolderMan *folderMan = FolderMan::instance();
+
     qCInfo(lcAccountSettings) << "Folder wizard completed";
 
-    const bool useVfs = folderWizard->useVirtualFiles();
+    bool useVfs = folderWizard->property("useVirtualFiles").toBool();
 
-    auto folder = FolderMan::instance()->addFolderFromWizard(_accountState,
+    auto folder = folderMan->addFolderFromWizard(_accountState,
         folderWizard->field(QLatin1String("sourceFolder")).toString(),
         folderWizard->property("targetPath").toString(),
         folderWizard->davUrl(),
@@ -448,8 +448,14 @@ void AccountSettings::slotFolderWizardAccepted()
             QStringList() << QLatin1String("/"));
         emit folderChanged();
     }
-    FolderMan::instance()->setSyncEnabled(true);
-    FolderMan::instance()->scheduleAllFolders();
+    folderMan->scheduleAllFolders();
+}
+
+void AccountSettings::slotFolderWizardRejected()
+{
+    qCInfo(lcAccountSettings) << "Folder wizard cancelled";
+    FolderMan *folderMan = FolderMan::instance();
+    folderMan->setSyncEnabled(true);
 }
 
 void AccountSettings::slotRemoveCurrentFolder()
@@ -799,7 +805,7 @@ void AccountSettings::slotAccountStateChanged()
         case AccountState::Connected: {
             QStringList errors;
             if (account->serverVersionUnsupported()) {
-                errors << tr("The server version %1 is unsupported! Proceed at your own risk.").arg(account->capabilities().status().versionString());
+                errors << tr("The server version %1 is unsupported! Proceed at your own risk.").arg(account->serverVersionString());
             }
             showConnectionLabel(tr("Connected to %1.").arg(serverWithUser), errors);
             ui->openBrowserButton->setVisible(false);

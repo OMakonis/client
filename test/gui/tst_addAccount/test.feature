@@ -35,7 +35,7 @@ Feature: adding accounts
         When the user adds the following wrong user credentials:
             | user     | Alice |
             | password | 12345 |
-        Then error "Login failed: username and/or password incorrect" should be displayed
+        Then error "The provided credentials are not correct" should be displayed
 
 
     Scenario: Adding account with self signed certificate for the first time
@@ -43,6 +43,6 @@ Feature: adding accounts
         When the user adds the following server address:
             | server | %secure_local_server% |
         And the user accepts the certificate
-        Then credentials wizard should be visible
+        Then the lock shown should be closed
 
 

@@ -350,7 +350,7 @@ void PropagateUploadFileNG::doFinalMove()
     _finished = true;
 
     // Finish with a MOVE
-    QString destination = QDir::cleanPath(propagator()->webDavUrl().path()
+    QString destination = QDir::cleanPath(propagator()->account()->davUrl().path()
         + propagator()->fullRemotePath(_item->_file));
     auto headers = PropagateUploadFileCommon::headers();
 

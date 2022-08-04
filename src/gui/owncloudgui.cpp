@@ -64,7 +64,6 @@ void setUpInitialSyncFolder(AccountStatePtr accountStatePtr, bool useVfs)
 
     auto finalize = [accountStatePtr] {
         accountStatePtr->checkConnectivity();
-        FolderMan::instance()->setSyncEnabled(true);
         FolderMan::instance()->scheduleAllFolders();
     };
 
@@ -203,6 +202,13 @@ void ownCloudGui::slotSyncStateChange(Folder *folder)
 
     qCInfo(lcApplication) << "Sync state changed for folder " << folder->remoteUrl().toString() << ": " << result.statusString();
 
+    if (result.status() == SyncResult::Success
+        || result.status() == SyncResult::Problem
+        || result.status() == SyncResult::SyncAbortRequested
+        || result.status() == SyncResult::Error) {
+        Logger::instance()->enterNextLogFile();
+    }
+
     if (result.status() == SyncResult::NotYetStarted) {
         _settingsDialog->slotRefreshActivity(folder->accountState());
     }
@@ -233,7 +239,7 @@ void ownCloudGui::slotTrayMessageIfServerUnsupported(Account *account)
             tr("The server on account %1 runs an unsupported version %2. "
                "Using this client with unsupported server versions is untested and "
                "potentially dangerous. Proceed at your own risk.")
-                .arg(account->displayName(), account->capabilities().status().versionString()));
+                .arg(account->displayName(), account->serverVersionString()));
     }
 }
 
@@ -1012,7 +1018,7 @@ void ownCloudGui::runNewAccountWizard()
                     auto validator = new ConnectionValidator(accountStatePtr->account(), accountStatePtr->account().data());
 
                     QObject::connect(validator, &ConnectionValidator::connectionResult, accountStatePtr.data(), [accountStatePtr, syncMode](ConnectionValidator::Status status, const QStringList &errors) {
-                        if (OC_ENSURE(status == ConnectionValidator::Connected || status == ConnectionValidator::ServerVersionMismatch)) {
+                        if (OC_ENSURE(status == ConnectionValidator::Connected)) {
                             // saving once after adding makes sure the account is stored in the config in a working state
                             // this is needed to ensure a consistent state in the config file upon unexpected terminations of the client
                             // (for instance, when running from a debugger and stopping the process from there)
@@ -1023,6 +1029,7 @@ void ownCloudGui::runNewAccountWizard()
                             case Wizard::SyncMode::UseVfs: {
                                 bool useVfs = syncMode == Wizard::SyncMode::UseVfs;
                                 setUpInitialSyncFolder(accountStatePtr, useVfs);
+                                FolderMan::instance()->setSyncEnabled(true);
 
                                 break;
                             }
@@ -1033,14 +1040,13 @@ void ownCloudGui::runNewAccountWizard()
                                 folderWizard->resize(ocApp()->gui()->settingsDialog()->sizeHintForChild());
                                 folderWizard->setAttribute(Qt::WA_DeleteOnClose);
 
-                                // TODO: duplication of AccountSettings
                                 // adapted from AccountSettings::slotFolderWizardAccepted()
                                 connect(folderWizard, &QDialog::accepted, [accountStatePtr, folderWizard]() {
                                     FolderMan *folderMan = FolderMan::instance();
 
                                     qCInfo(lcApplication) << "Folder wizard completed";
 
-                                    const bool useVfs = folderWizard->useVirtualFiles();
+                                    bool useVfs = folderWizard->property("useVirtualFiles").toBool();
 
                                     auto folder = folderMan->addFolderFromWizard(accountStatePtr,
                                         folderWizard->field(QLatin1String("sourceFolder")).toString(),

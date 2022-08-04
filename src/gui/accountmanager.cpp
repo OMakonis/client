@@ -248,6 +248,7 @@ void AccountManager::saveAccountHelper(Account *acc, QSettings &settings, bool s
     settings.setValue(davUserC(), acc->_davUser);
     settings.setValue(davUserDisplyNameC(), acc->_displayName);
     settings.setValue(userUUIDC(), acc->uuid());
+    settings.setValue(QLatin1String(serverVersionC), acc->_serverVersion);
     if (acc->hasCapabilities()) {
         settings.setValue(capabilitesC(), acc->capabilities().raw());
     }
@@ -307,6 +308,7 @@ AccountPtr AccountManager::loadAccountHelper(QSettings &settings)
         acc->setUrl(urlConfig.toUrl());
     }
 
+    acc->_serverVersion = settings.value(QLatin1String(serverVersionC)).toString();
     acc->_davUser = settings.value(davUserC()).toString();
     acc->_displayName = settings.value(davUserDisplyNameC()).toString();
     acc->_uuid = settings.value(userUUIDC(), acc->_uuid).toUuid();

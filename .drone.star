@@ -50,49 +50,94 @@ def main(ctx):
             "cron",
         ],
     }
-
-    pipelines = []
-
-    if ctx.build.event == "cron":
-        # cron job pipelines
-        unit_tests = unit_test_pipeline(
+    pipelines = [
+        cancelPreviousBuilds(),
+        # check the format of gui test code
+        gui_tests_format(build_trigger),
+        # Check starlark
+        check_starlark(
+            ctx,
+            build_trigger,
+        ),
+        # Build changelog
+        changelog(
+            ctx,
+            trigger = build_trigger,
+            depends_on = [],
+        ),
+        build_and_test_client(
+            ctx,
+            "clang",
+            "clang++",
+            "Debug",
+            "Ninja",
+            trigger = build_trigger,
+        ),
+        gui_tests(ctx, trigger = build_trigger, version = "latest"),
+    ]
+    cron_pipelines = [
+        # Build client
+        build_and_test_client(
             ctx,
             "gcc",
             "g++",
             "Release",
             "Unix Makefiles",
             trigger = cron_trigger,
-        ) + unit_test_pipeline(
+        ),
+        build_and_test_client(
             ctx,
             "clang",
             "clang++",
             "Debug",
             "Ninja",
             trigger = cron_trigger,
-        )
-        gui_tests = gui_test_pipeline(ctx, trigger = cron_trigger)
-        notify = notification(
+        ),
+        gui_tests(ctx, trigger = cron_trigger),
+        notification(
             name = "build",
             trigger = cron_trigger,
-        )
-        pipelines = unit_tests + gui_tests + pipelinesDependsOn(notify, unit_tests + gui_tests)
-    else:
-        pipelines = cancelPreviousBuilds() + \
-                    gui_tests_format(build_trigger) + \
-                    check_starlark(build_trigger) + \
-                    changelog(ctx, trigger = build_trigger) + \
-                    unit_test_pipeline(ctx, "clang", "clang++", "Debug", "Ninja", trigger = build_trigger) + \
-                    gui_test_pipeline(ctx, trigger = build_trigger, version = "latest")
+            depends_on = [
+                "clang-debug-ninja",
+                "GUI-tests",
+            ],
+        ),
+    ]
 
-    return pipelines
+    if ctx.build.event == "cron":
+        return cron_pipelines
+    else:
+        return pipelines
+
+def whenOnline(dict):
+    if not "when" in dict:
+        dict["when"] = {}
+
+    if not "instance" in dict:
+        dict["when"]["instance"] = []
+
+    dict["when"]["instance"].append("drone.owncloud.com")
+
+    return dict
+
+def whenPush(dict):
+    if not "when" in dict:
+        dict["when"] = {}
+
+    if not "event" in dict:
+        dict["when"]["event"] = []
+
+    dict["when"]["event"].append("push")
+
+    return dict
 
 def from_secret(name):
     return {
         "from_secret": name,
     }
 
-def check_starlark(trigger = {}):
-    return [{
+def check_starlark(ctx, trigger = {}, depends_on = []):
+    return {
         "kind": "pipeline",
         "type": "docker",
         "name": "check-starlark",
@@ -118,29 +163,52 @@ def check_starlark(trigger = {}):
                 },
             },
         ],
+        "depends_on": depends_on,
         "trigger": trigger,
-    }]
+    }
 
-def unit_test_pipeline(ctx, c_compiler, cxx_compiler, build_type, generator, trigger = {}):
+def build_and_test_client(ctx, c_compiler, cxx_compiler, build_type, generator, trigger = {}, depends_on = []):
     build_command = "ninja" if generator == "Ninja" else "make"
     pipeline_name = c_compiler + "-" + build_type.lower() + "-" + build_command
     build_dir = "build-" + pipeline_name
 
-    return [{
+    return {
         "kind": "pipeline",
         "name": pipeline_name,
         "platform": {
             "os": "linux",
             "arch": "amd64",
         },
-        "steps": skipIfUnchanged(ctx, "unit-tests") +
-                 gitSubModules() +
-                 build_client(c_compiler, cxx_compiler, build_type, generator, build_command, build_dir) +
-                 unit_tests(build_dir, [build_command]),
+        "steps": skipIfUnchanged(ctx, "unit-tests") + [
+                     {
+                         "name": "submodules",
+                         "image": DOCKER_GIT,
+                         "commands": [
+                             "git submodule update --init --recursive",
+                         ],
+                     },
+                 ] +
+                 build_client(ctx, c_compiler, cxx_compiler, build_type, generator, build_command, build_dir) +
+                 [
+                     {
+                         "name": "ctest",
+                         "image": OC_CI_CLIENT,
+                         "environment": {
+                             "LC_ALL": "C.UTF-8",
+                         },
+                         "commands": [
+                             'cd "' + build_dir + '"',
+                             "useradd -m -s /bin/bash tester",
+                             "chown -R tester:tester .",
+                             "su-exec tester ctest --output-on-failure -LE nodrone",
+                         ],
+                     },
+                 ],
         "trigger": trigger,
-    }]
+        "depends_on": depends_on,
+    }
 
-def gui_test_pipeline(ctx, trigger = {}, filterTags = [], version = "daily-master-qa"):
+def gui_tests(ctx, trigger = {}, depends_on = [], filterTags = [], version = "daily-master-qa"):
     pipeline_name = "GUI-tests"
     build_dir = "build-" + pipeline_name
     squish_parameters = "--reportgen html,%s --envvar QT_LOGGING_RULES=sync.httplogger=true;gui.socketapi=false --tags ~@skip" % GUI_TEST_REPORT_DIR
@@ -150,37 +218,45 @@ def gui_test_pipeline(ctx, trigger = {}, filterTags = [], version = "daily-maste
             squish_parameters += " --tags " + tags
             pipeline_name += "-" + tags
 
-    build_config = {
-        "c_compiler": "gcc",
-        "cxx_compiler": "g++",
-        "build_type": "Debug",
-        "generator": "Ninja",
-        "build_command": "ninja",
-    }
-
-    return [{
+    return {
         "kind": "pipeline",
         "name": pipeline_name,
         "platform": {
             "os": "linux",
             "arch": "amd64",
         },
-        "steps": skipIfUnchanged(ctx, "gui-tests") +
-                 gitSubModules() +
+        "steps": skipIfUnchanged(ctx, "gui-tests") + [
+                     {
+                         "name": "submodules",
+                         "image": DOCKER_GIT,
+                         "commands": [
+                             "git submodule update --init --recursive",
+                         ],
+                     },
+                 ] +
                  installCore(version) +
-                 setupServerAndApp() +
+                 setupServerAndApp(2) +
                  fixPermissions() +
                  owncloudLog() +
                  setGuiTestReportDir() +
-                 build_client(
-                     build_config["c_compiler"],
-                     build_config["cxx_compiler"],
-                     build_config["build_type"],
-                     build_config["generator"],
-                     build_config["build_command"],
-                     build_dir,
-                 ) +
-                 gui_tests(squish_parameters, [build_config["build_command"]]) +
+                 build_client(ctx, "gcc", "g++", "Debug", "Ninja", "ninja", build_dir) +
+                 [
+                     {
+                         "name": "GUItests",
+                         "image": OC_CI_SQUISH,
+                         "environment": {
+                             "LICENSEKEY": from_secret("squish_license_server"),
+                             "GUI_TEST_REPORT_DIR": GUI_TEST_REPORT_DIR,
+                             "CLIENT_REPO": "/drone/src/",
+                             "MIDDLEWARE_URL": "http://testmiddleware:3000/",
+                             "BACKEND_HOST": "http://owncloud/",
+                             "SECURE_BACKEND_HOST": "https://owncloud/",
+                             "SERVER_INI": "/drone/src/test/gui/drone/server.ini",
+                             "SQUISH_PARAMETERS": squish_parameters,
+                             "STACKTRACE_FILE": STACKTRACE_FILE,
+                         },
+                     },
+                 ] +
                  # GUI test result has been disabled for now, as we squish can not produce the result in both html and json format.
                  # Disabled untill the feature to generate json result is implemented in squish, or some other method to reuse the log parser is implemented.
                  #  showGuiTestResult() +
@@ -191,18 +267,19 @@ def gui_test_pipeline(ctx, trigger = {}, filterTags = [], version = "daily-maste
                     owncloudService() +
                     databaseService(),
         "trigger": trigger,
+        "depends_on": depends_on,
         "volumes": [
             {
                 "name": "uploads",
                 "temp": {},
             },
         ],
-    }]
+    }
 
-def build_client(c_compiler, cxx_compiler, build_type, generator, build_command, build_dir):
+def build_client(ctx, c_compiler, cxx_compiler, build_type, generator, build_command, build_dir):
     return [
         {
-            "name": "generate",
+            "name": "cmake",
             "image": OC_CI_CLIENT,
             "environment": {
                 "LC_ALL": "C.UTF-8",
@@ -223,46 +300,11 @@ def build_client(c_compiler, cxx_compiler, build_type, generator, build_command,
                 'cd "' + build_dir + '"',
                 build_command + " -j4",
             ],
-            "depends_on": ["generate"],
         },
     ]
 
-def unit_tests(build_dir, depends_on = []):
-    return [{
-        "name": "ctest",
-        "image": OC_CI_CLIENT,
-        "environment": {
-            "LC_ALL": "C.UTF-8",
-        },
-        "commands": [
-            'cd "' + build_dir + '"',
-            "useradd -m -s /bin/bash tester",
-            "chown -R tester:tester .",
-            "su-exec tester ctest --output-on-failure -LE nodrone",
-        ],
-        "depends_on": depends_on,
-    }]
-
-def gui_tests(squish_parameters = "", depends_on = []):
-    return [{
-        "name": "GUItests",
-        "image": OC_CI_SQUISH,
-        "environment": {
-            "LICENSEKEY": from_secret("squish_license_server"),
-            "GUI_TEST_REPORT_DIR": GUI_TEST_REPORT_DIR,
-            "CLIENT_REPO": "/drone/src/",
-            "MIDDLEWARE_URL": "http://testmiddleware:3000/",
-            "BACKEND_HOST": "http://owncloud/",
-            "SECURE_BACKEND_HOST": "https://owncloud/",
-            "SERVER_INI": "/drone/src/test/gui/drone/server.ini",
-            "SQUISH_PARAMETERS": squish_parameters,
-            "STACKTRACE_FILE": STACKTRACE_FILE,
-        },
-        "depends_on": depends_on,
-    }]
-
 def gui_tests_format(trigger):
-    return [{
+    return {
         "kind": "pipeline",
         "type": "docker",
         "name": "guitestformat",
@@ -277,12 +319,11 @@ def gui_tests_format(trigger):
             },
         ],
         "trigger": trigger,
-    }]
+    }
 
-def changelog(ctx, trigger = {}):
+def changelog(ctx, trigger = {}, depends_on = []):
     repo_slug = ctx.build.source_repo if ctx.build.source_repo else ctx.repo.slug
-
-    return [{
+    result = {
         "kind": "pipeline",
         "type": "docker",
         "name": "changelog",
@@ -353,9 +394,25 @@ def changelog(ctx, trigger = {}):
             },
         ],
         "trigger": trigger,
-    }]
+        "depends_on": depends_on,
+    }
 
-def notification(name, trigger = {}):
+    return result
+
+def make(target, path, image = OC_CI_TRANSIFEX):
+    return {
+        "name": target,
+        "image": image,
+        "environment": {
+            "TX_TOKEN": from_secret("tx_token"),
+        },
+        "commands": [
+            'cd "' + path + '"',
+            "make " + target,
+        ],
+    }
+
+def notification(name, depends_on = [], trigger = {}):
     trigger = dict(trigger)
     if not "status" in trigger:
         trigger["status"] = []
@@ -363,7 +420,7 @@ def notification(name, trigger = {}):
     trigger["status"].append("success")
     trigger["status"].append("failure")
 
-    return [{
+    return {
         "kind": "pipeline",
         "name": "notifications-" + name,
         "platform": {
@@ -398,10 +455,11 @@ def notification(name, trigger = {}):
             },
         ],
         "trigger": trigger,
-    }]
+        "depends_on": depends_on,
+    }
 
 def databaseService():
-    return [{
+    service = {
         "name": "mysql",
         "image": MYSQL,
         "environment": {
@@ -411,10 +469,11 @@ def databaseService():
             "MYSQL_ROOT_PASSWORD": "owncloud",
         },
         "command": ["--default-authentication-plugin=mysql_native_password"],
-    }]
+    }
+    return [service]
 
-def installCore(version = "latest"):
-    return [{
+def installCore(version):
+    stepDefinition = {
         "name": "install-core",
         "image": OC_CI_CORE,
         "settings": {
@@ -426,9 +485,10 @@ def installCore(version = "latest"):
             "db_username": "owncloud",
             "db_password": "owncloud",
         },
-    }]
+    }
+    return [stepDefinition]
 
-def setupServerAndApp(logLevel = 2):
+def setupServerAndApp(logLevel):
     return [{
         "name": "setup-owncloud-server",
         "image": OC_CI_PHP % DEFAULT_PHP_VERSION,
@@ -441,7 +501,6 @@ def setupServerAndApp(logLevel = 2):
             "php occ config:system:set skeletondirectory --value=/var/www/owncloud/server/apps/testing/data/tinySkeleton",
             "php occ config:system:set sharing.federation.allowHttpFallback --value=true --type=bool",
         ],
-        "depends_on": stepDependsOn(installCore()),
     }]
 
 def owncloudService():
@@ -488,7 +547,6 @@ def owncloudLog():
         "commands": [
             "tail -f /drone/src/server/data/owncloud.log",
         ],
-        "depends_on": stepDependsOn(installCore()),
     }]
 
 def fixPermissions():
@@ -498,16 +556,6 @@ def fixPermissions():
         "commands": [
             "cd /drone/src/server",
             "chown www-data * -R",
-        ],
-        "depends_on": stepDependsOn(setupServerAndApp()),
-    }]
-
-def gitSubModules():
-    return [{
-        "name": "submodules",
-        "image": DOCKER_GIT,
-        "commands": [
-            "git submodule update --init --recursive",
         ],
     }]
 
@@ -559,7 +607,6 @@ def uploadGuiTestLogs():
                 "from_secret": "cache_public_s3_secret_key",
             },
         },
-        "depends_on": stepDependsOn(gui_tests()),
         "when": {
             "status": [
                 "failure",
@@ -567,7 +614,7 @@ def uploadGuiTestLogs():
         },
     }]
 
-def buildGithubComment(suite = ""):
+def buildGithubComment(suite):
     return [{
         "name": "build-github-comment",
         "image": OC_UBUNTU,
@@ -583,7 +630,6 @@ def buildGithubComment(suite = ""):
                 "from_secret": "cache_public_s3_bucket",
             },
         },
-        "depends_on": stepDependsOn(uploadGuiTestLogs()),
         "when": {
             "status": [
                 "failure",
@@ -610,7 +656,6 @@ def githubComment(alternateSuiteName):
         "commands": [
             "if [ -s %s/comments.file ]; then echo '%s' | cat - %s/comments.file > temp && mv temp %s/comments.file && /bin/drone-github-comment; fi" % (GUI_TEST_REPORT_DIR, prefix, GUI_TEST_REPORT_DIR, GUI_TEST_REPORT_DIR),
         ],
-        "depends_on": stepDependsOn(buildGithubComment()),
         "when": {
             "status": [
                 "failure",
@@ -622,7 +667,7 @@ def githubComment(alternateSuiteName):
     }]
 
 def cancelPreviousBuilds():
-    return [{
+    return {
         "kind": "pipeline",
         "type": "docker",
         "name": "cancel-previous-builds",
@@ -643,7 +688,7 @@ def cancelPreviousBuilds():
                 "refs/pull/**",
             ],
         },
-    }]
+    }
 
 def skipIfUnchanged(ctx, type):
     if ("full-ci" in ctx.build.title.lower()):
@@ -684,28 +729,3 @@ def skipIfUnchanged(ctx, type):
             ],
         },
     }]
-
-def stepDependsOn(steps = []):
-    if type(steps) == dict:
-        steps = [steps]
-    return getPipelineNames(steps)
-
-def getPipelineNames(pipelines = []):
-    names = []
-    for pipeline in pipelines:
-        names.append(pipeline["name"])
-    return names
-
-def pipelineDependsOn(pipeline, dependant_pipelines):
-    if "depends_on" in pipeline.keys():
-        pipeline["depends_on"] = pipeline["depends_on"] + getPipelineNames(dependant_pipelines)
-    else:
-        pipeline["depends_on"] = getPipelineNames(dependant_pipelines)
-    return pipeline
-
-def pipelinesDependsOn(pipelines, dependant_pipelines):
-    pipes = []
-    for pipeline in pipelines:
-        pipes.append(pipelineDependsOn(pipeline, dependant_pipelines))
-
-    return pipes

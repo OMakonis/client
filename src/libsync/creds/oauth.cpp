@@ -18,8 +18,9 @@
 #include "common/version.h"
 #include "credentialmanager.h"
 #include "creds/httpcredentials.h"
+#include "creds/jobs/determineuserjobfactory.h"
+#include "networkjobs.h"
 #include "networkjobs/checkserverjobfactory.h"
-#include "networkjobs/fetchuserinfojobfactory.h"
 #include "theme.h"
 
 #include <QApplication>
@@ -300,8 +301,12 @@ void OAuth::startAuthentication()
                         emit result(Error);
                         return;
                     }
+                    if (!user.isEmpty()) {
+                        finalize(socket, accessToken, refreshToken, user, messageUrl);
+                        return;
+                    }
 
-                    auto *job = FetchUserInfoJobFactory::fromOAuth2Credentials(_networkAccessManager, accessToken, this).startJob(_serverUrl);
+                    auto *job = DetermineUserJobFactory(_networkAccessManager, accessToken, this).startJob(_serverUrl);
 
                     connect(job, &CoreJob::finished, this, [=]() {
                         if (!job->success()) {
@@ -309,8 +314,8 @@ void OAuth::startAuthentication()
                                 tr("<h1>Login Error</h1><p>%1</p>").arg(job->errorMessage()).toUtf8());
                             emit result(Error);
                         } else {
-                            auto result = job->result().value<FetchUserInfoResult>();
-                            finalize(socket, accessToken, refreshToken, result.userName(), result.displayName(), messageUrl);
+                            const QString user = job->result().toString();
+                            finalize(socket, accessToken, refreshToken, user, messageUrl);
                         }
                     });
                 });
@@ -384,16 +389,17 @@ void OAuth::refreshAuthentication(const QString &refreshToken)
     fetchWellKnown();
 }
 
-void OAuth::finalize(const QPointer<QTcpSocket> &socket, const QString &accessToken, const QString &refreshToken, const QString &userName, const QString &displayName, const QUrl &messageUrl)
+void OAuth::finalize(const QPointer<QTcpSocket> &socket, const QString &accessToken,
+    const QString &refreshToken, const QString &user, const QUrl &messageUrl)
 {
-    if (!_davUser.isEmpty() && userName != _davUser) {
+    if (!_davUser.isEmpty() && user != _davUser) {
         // Connected with the wrong user
-        qCWarning(lcOauth) << "We expected the user" << _davUser << "but the server answered with user" << userName;
+        qCWarning(lcOauth) << "We expected the user" << _davUser << "but the server answered with user" << user;
         const QString message = tr("<h1>Wrong user</h1>"
                                    "<p>You logged-in with user <em>%1</em>, but must login with user <em>%2</em>.<br>"
                                    "Please log out of %3 in another tab, then <a href='%4'>click here</a> "
                                    "and log in as user %2</p>")
-                                    .arg(userName, _davUser, Theme::instance()->appNameGUI(),
+                                    .arg(user, _davUser, Theme::instance()->appNameGUI(),
                                         authorisationLink().toString(QUrl::FullyEncoded));
         httpReplyAndClose(socket, QByteArrayLiteral("403 Forbidden"), message.toUtf8());
         // We are still listening on the socket so we will get the new connection
@@ -406,7 +412,7 @@ void OAuth::finalize(const QPointer<QTcpSocket> &socket, const QString &accessTo
     } else {
         httpReplyAndClose(socket, QByteArrayLiteral("200 OK"), loginSuccessfullHtml);
     }
-    emit result(LoggedIn, userName, accessToken, displayName, refreshToken);
+    emit result(LoggedIn, user, accessToken, refreshToken);
 }
 
 QNetworkReply *OAuth::postTokenRequest(const QList<QPair<QString, QString>> &queryItems)

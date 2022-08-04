@@ -33,8 +33,6 @@ SetupWizardWindow::SetupWizardWindow(QWidget *parent)
     : QDialog(parent)
     , _ui(new ::Ui::SetupWizardWindow)
 {
-    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
     _ui->setupUi(this);
 
     slotHideErrorMessageWidget();

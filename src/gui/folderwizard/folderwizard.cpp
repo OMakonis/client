@@ -23,9 +23,7 @@
 #include "common/asserts.h"
 #include "configfile.h"
 #include "creds/abstractcredentials.h"
-#include "gui/application.h"
 #include "gui/askexperimentalvirtualfilesfeaturemessagebox.h"
-#include "gui/settingsdialog.h"
 #include "networkjobs.h"
 #include "theme.h"
 
@@ -146,7 +144,7 @@ void FolderWizardLocalPath::slotChooseLocalFolder()
         sf += QLatin1Char('/') + dirs.at(0); // Take the first dir in home dir.
 
     QString dir = QFileDialog::getExistingDirectory(this,
-        tr("Select the local folder"),
+        tr("Select the source folder"),
         sf);
     if (!dir.isEmpty()) {
         // set the last directory component name as alias
@@ -530,13 +528,20 @@ void FolderWizardSelectiveSync::initializePage()
 
 bool FolderWizardSelectiveSync::validatePage()
 {
-    wizard()->setProperty("selectiveSyncBlackList", useVirtualFiles() ? QVariant() : QVariant(_selectiveSync->createBlackList()));
+    const auto mode = bestAvailableVfsMode();
+    const bool useVirtualFiles = (Theme::instance()->forceVirtualFilesOption() && mode == Vfs::WindowsCfApi) || (_virtualFilesCheckBox && _virtualFilesCheckBox->isChecked());
+    if (useVirtualFiles) {
+        const auto availability = Vfs::checkAvailability(wizard()->field(QStringLiteral("sourceFolder")).toString(), mode);
+        if (!availability) {
+            auto msg = new QMessageBox(QMessageBox::Warning, tr("Virtual files are not available for the selected folder"), availability.error(), QMessageBox::Ok, this);
+            msg->setAttribute(Qt::WA_DeleteOnClose);
+            msg->open();
+            return false;
+        }
+    }
+    wizard()->setProperty("selectiveSyncBlackList", useVirtualFiles ? QVariant() : QVariant(_selectiveSync->createBlackList()));
+    wizard()->setProperty("useVirtualFiles", QVariant(useVirtualFiles));
     return true;
-}
-
-bool FolderWizardSelectiveSync::useVirtualFiles() const
-{
-    return _virtualFilesCheckBox && _virtualFilesCheckBox->isChecked();
 }
 
 void FolderWizardSelectiveSync::cleanupPage()
@@ -646,22 +651,6 @@ QString FolderWizard::displayName() const
         return _spacesPage->selectedSpace(Spaces::SpacesModel::Columns::Name).toString();
     };
     return QString();
-}
-
-bool FolderWizard::useVirtualFiles() const
-{
-    const auto mode = bestAvailableVfsMode();
-    const bool useVirtualFiles = (Theme::instance()->forceVirtualFilesOption() && mode == Vfs::WindowsCfApi) || (_folderWizardSelectiveSyncPage->useVirtualFiles());
-    if (useVirtualFiles) {
-        const auto availability = Vfs::checkAvailability(destination(), mode);
-        if (!availability) {
-            auto msg = new QMessageBox(QMessageBox::Warning, tr("Virtual files are not available for the selected folder"), availability.error(), QMessageBox::Ok, ocApp()->gui()->settingsDialog());
-            msg->setAttribute(Qt::WA_DeleteOnClose);
-            msg->open();
-            return false;
-        }
-    }
-    return useVirtualFiles;
 }
 
 bool FolderWizard::eventFilter(QObject *watched, QEvent *event)

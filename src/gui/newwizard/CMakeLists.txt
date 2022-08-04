@@ -1,4 +1,4 @@
-add_library(newwizard STATIC
+add_library(newwizard OBJECT
     pages/abstractsetupwizardpage.h
     pages/abstractsetupwizardpage.cpp
 
@@ -33,11 +33,6 @@ add_library(newwizard STATIC
 
     jobs/resolveurljobfactory.cpp
     jobs/resolveurljobfactory.h
-
-    jobs/checkbasicauthjobfactory.cpp
-    jobs/checkbasicauthjobfactory.h
-
-    postfixlineedit.cpp
 
     syncmode.cpp
 )

@@ -1,4 +1,4 @@
-add_library(folderwizard STATIC
+add_library(folderwizard OBJECT
     folderwizard.cpp
     folderwizardsourcepage.ui
     folderwizardtargetpage.ui

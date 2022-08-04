@@ -224,6 +224,7 @@ Application::Application(int &argc, char **argv)
     : SharedTools::QtSingleApplication(Theme::instance()->appName(), argc, argv)
     , _gui(nullptr)
     , _theme(Theme::instance())
+    , _logExpire(0)
     , _logFlush(false)
     , _logDebug(false)
     , _userTriggeredConnect(false)
@@ -395,8 +396,21 @@ Application::~Application()
     AccountManager::instance()->shutdown();
 }
 
-void Application::slotAccountStateRemoved() const
+void Application::slotAccountStateRemoved(AccountStatePtr accountState) const
 {
+    if (_gui) {
+        disconnect(accountState.data(), &AccountState::stateChanged,
+            _gui.data(), &ownCloudGui::slotAccountStateChanged);
+        disconnect(accountState->account().data(), &Account::serverVersionChanged,
+            _gui.data(), &ownCloudGui::slotTrayMessageIfServerUnsupported);
+    }
+    if (_folderManager) {
+        disconnect(accountState.data(), &AccountState::stateChanged,
+            _folderManager.data(), &FolderMan::slotAccountStateChanged);
+        disconnect(accountState->account().data(), &Account::serverVersionChanged,
+            _folderManager.data(), &FolderMan::slotServerVersionChanged);
+    }
+
     // if there is no more account, show the wizard.
     if (_gui && AccountManager::instance()->accounts().isEmpty()) {
         // allow to add a new account if there is non any more. Always think
@@ -411,17 +425,13 @@ void Application::slotAccountStateAdded(AccountStatePtr accountState) const
     connect(accountState.data(), &AccountState::stateChanged,
         _gui.data(), &ownCloudGui::slotAccountStateChanged);
     connect(accountState->account().data(), &Account::serverVersionChanged,
-        _gui.data(), [account = accountState->account().data(), this] {
-            _gui->slotTrayMessageIfServerUnsupported(account);
-        });
+        _gui.data(), &ownCloudGui::slotTrayMessageIfServerUnsupported);
 
     // Hook up the folder manager slots to the account state's signals:
     connect(accountState.data(), &AccountState::stateChanged,
         _folderManager.data(), &FolderMan::slotAccountStateChanged);
     connect(accountState->account().data(), &Account::serverVersionChanged,
-        _folderManager.data(), [account = accountState->account().data()] {
-            FolderMan::instance()->slotServerVersionChanged(account);
-        });
+        _folderManager.data(), &FolderMan::slotServerVersionChanged);
 
     _gui->slotTrayMessageIfServerUnsupported(accountState->account().data());
 }
@@ -524,8 +534,10 @@ void Application::setupLogging()
     auto logger = Logger::instance();
     logger->setLogFile(_logFile);
     logger->setLogDir(_logDir);
+    logger->setLogExpire(_logExpire);
     logger->setLogFlush(_logFlush);
     logger->setLogDebug(_logDebug);
+    logger->enterNextLogFile();
 
     // Possibly configure logging from config file
     LogBrowser::setupLoggingFromConfig();
@@ -602,6 +614,7 @@ void Application::parseOptions(const QStringList &arguments)
     auto quitInstanceOption = addOption({ { "q", "quit" }, tr("Quit the running instance.") });
     auto logFileOption = addOption({ "logfile", tr("Write log to file (use - to write to stdout)."), "filename" });
     auto logDirOption = addOption({ "logdir", tr("Write each sync log output in a new file in folder."), "name" });
+    auto logExpireOption = addOption({ "logexpire", tr("Remove logs older than <hours> hours (to be used with --logdir)."), "hours" });
     auto logFlushOption = addOption({ "logflush", tr("Flush the log file after every write.") });
     auto logDebugOption = addOption({ "logdebug", tr("Output debug-level messages in the log.") });
     auto languageOption = addOption({ "language", tr("Override UI language."), "language" });
@@ -626,6 +639,9 @@ void Application::parseOptions(const QStringList &arguments)
     }
     if (parser.isSet(logDirOption)) {
         _logDir = parser.value(logDirOption);
+    }
+    if (parser.isSet(logExpireOption)) {
+        _logExpire = std::chrono::hours(parser.value(logExpireOption).toInt());
     }
     if (parser.isSet(logFlushOption)) {
         _logFlush = true;

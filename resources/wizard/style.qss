@@ -28,8 +28,7 @@
 #contentWidget #enterYourCredentialsLabel,
 #contentWidget #urlLabel,
 #contentWidget #pleaseLogIntoLabel,
-#contentWidget #usernameLabel,
-#contentWidget #passwordLabel,
+#contentWidget #welcomeTextLabel,
 #contentWidget #advancedConfigGroupBox::title
 {
     color: @WIZARD_FONT_COLOR@;

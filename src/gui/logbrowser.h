@@ -53,6 +53,7 @@ public:
 
 protected slots:
     void togglePermanentLogging(bool enabled);
+    void toggleLogDeletion(bool enabled);
 
 private:
     QScopedPointer<Ui::LogBrowser> ui;

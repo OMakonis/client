@@ -5,15 +5,12 @@ import test
 
 
 class AccountConnectionWizard:
-    SERVER_ADDRESS_BOX = names.contentWidget_urlLineEdit_QLineEdit
-    NEXT_BUTTON = names.setupWizardWindow_nextButton_QPushButton
-    CONFIRM_INSECURE_CONNECTION_BUTTON = names.insecure_connection_Confirm_QPushButton
-    USERNAME_BOX = names.contentWidget_usernameLineEdit_QLineEdit
-    PASSWORD_BOX = names.contentWidget_passwordLineEdit_QLineEdit
-    SELECT_LOCAL_FOLDER = names.localDirectoryGroupBox_localDirectoryLineEdit_QLineEdit
-    DIRECTORY_NAME_BOX = (
-        names.localDirectoryGroupBox_chooseLocalDirectoryButton_QToolButton
-    )
+    SERVER_ADDRESS_BOX = names.leUrl_OCC_PostfixLineEdit
+    NEXT_BUTTON = names.owncloudWizard_qt_passive_wizardbutton1_QPushButton
+    USERNAME_BOX = names.leUsername_QLineEdit
+    PASSWORD_BOX = names.lePassword_QLineEdit
+    SELECT_LOCAL_FOLDER = names.pbSelectLocalFolder_QPushButton
+    DIRECTORY_NAME_BOX = names.fileNameEdit_QLineEdit
     CHOOSE_BUTTON = names.qFileDialog_Choose_QPushButton
     FINISH_BUTTON = {
         "name": "qt_wizard_finish",
@@ -21,24 +18,30 @@ class AccountConnectionWizard:
         "visible": 1,
         "window": names.owncloudWizard_OCC_OwncloudWizard,
     }
+    ERROR_OK_BUTTON = {
+        "text": "OK",
+        "type": "QPushButton",
+        "unnamed": 1,
+        "visible": 1,
+        "window": names.error_QMessageBox,
+    }
     ERROR_LABEL = {
-        "name": "errorMessageLabel",
+        "name": "errorLabel",
         "type": "QLabel",
         "visible": 1,
-        "window": names.setupWizardWindow_OCC_Wizard_SetupWizardWindow,
+        "window": names.owncloudWizard_OCC_OwncloudWizard,
     }
     CREDENTIAL_PAGE = {
-        "container": names.setupWizardWindow_contentWidget_QStackedWidget,
-        "name": "BasicCredentialsSetupWizardPage",
-        "type": "OCC::Wizard::BasicCredentialsSetupWizardPage",
+        "name": "OwncloudHttpCredsPage",
+        "type": "OCC::OwncloudHttpCredsPage",
         "visible": 1,
+        "window": names.owncloudWizard_OCC_OwncloudWizard,
     }
-
     ADVANCE_SETUP_PAGE = {
         "name": "OwncloudAdvancedSetupPage",
         "type": "OCC::OwncloudAdvancedSetupPage",
         "visible": 1,
-        "container": names.setupWizardWindow_contentWidget_QStackedWidget,
+        "window": names.owncloudWizard_OCC_OwncloudWizard,
     }
     MANUAL_SYNC_FOLDER_OPTION = {
         "name": "rManualFolder",
@@ -67,18 +70,6 @@ class AccountConnectionWizard:
         "visible": 1,
         "window": SELECTIVE_SYNC_DIALOG,
     }
-    ADVANCED_CONFIGURATION_CHECKBOX = {
-        "container": names.setupWizardWindow_contentWidget_QStackedWidget,
-        "name": "advancedConfigGroupBox",
-        "type": "QGroupBox",
-        "visible": 1,
-    }
-    DIRECTORY_NAME_EDIT_BOX = {
-        "buddy": names.qFileDialog_fileNameLabel_QLabel,
-        "name": "fileNameEdit",
-        "type": "QLineEdit",
-        "visible": 1,
-    }
 
     def __init__(self):
         pass
@@ -90,39 +81,16 @@ class AccountConnectionWizard:
         clientDetails = getClientDetails(context)
         squish.mouseClick(squish.waitForObject(self.SERVER_ADDRESS_BOX))
         squish.type(
-            squish.waitForObject(self.SERVER_ADDRESS_BOX),
-            clientDetails['server'],
+            squish.waitForObject(self.SERVER_ADDRESS_BOX), clientDetails['server']
         )
         squish.clickButton(squish.waitForObject(self.NEXT_BUTTON))
-
-        try:
-            squish.clickButton(
-                squish.waitForObject(self.CONFIRM_INSECURE_CONNECTION_BUTTON)
-            )
-        except:
-            test.log(
-                "No insecure connection warning for server " + clientDetails['server']
-            )
-            pass
 
     def addUserCreds(self, context):
         clientDetails = getClientDetails(context)
 
-        squish.type(
-            squish.waitForObject(self.USERNAME_BOX),
-            clientDetails['user'],
-        )
-        squish.type(
-            squish.waitForObject(self.USERNAME_BOX),
-            "<Tab>",
-        )
-        squish.type(
-            squish.waitForObject(self.PASSWORD_BOX),
-            clientDetails['password'],
-        )
-        squish.clickButton(squish.waitForObject(self.NEXT_BUTTON))
-
-    def finishSetup(self):
+        squish.type(squish.waitForObject(self.USERNAME_BOX), clientDetails['user'])
+        squish.type(squish.waitForObject(self.USERNAME_BOX), "<Tab>")
+        squish.type(squish.waitForObject(self.PASSWORD_BOX), clientDetails['password'])
         squish.clickButton(squish.waitForObject(self.NEXT_BUTTON))
 
     def selectSyncFolder(self, context):
@@ -130,20 +98,30 @@ class AccountConnectionWizard:
         # create sync folder for user
         syncPath = createUserSyncPath(context, clientDetails['user'])
 
-        squish.waitForObject(self.ADVANCED_CONFIGURATION_CHECKBOX).setChecked(True)
+        try:
+            oldwaitForObjectTimeout = squish.testSettings.waitForObjectTimeout
+            squish.testSettings.waitForObjectTimeout = 1000
+            squish.clickButton(squish.waitForObject(self.ERROR_OK_BUTTON))
+        except LookupError:
+            squish.testSettings.waitForObjectTimeout = oldwaitForObjectTimeout
+            pass
+        squish.clickButton(squish.waitForObject(self.SELECT_LOCAL_FOLDER))
         squish.mouseClick(squish.waitForObject(self.DIRECTORY_NAME_BOX))
-        squish.type(squish.waitForObject(self.DIRECTORY_NAME_EDIT_BOX), syncPath)
+        squish.type(squish.waitForObject(self.DIRECTORY_NAME_BOX), syncPath)
         squish.clickButton(squish.waitForObject(self.CHOOSE_BUTTON))
         test.compare(
             str(squish.waitForObjectExists(self.SELECT_LOCAL_FOLDER).text),
             self.sanitizeFolderPath(syncPath),
         )
 
+    def connectAccount(self):
+        squish.clickButton(squish.waitForObject(self.FINISH_BUTTON))
+
     def addAccount(self, context):
         self.addServer(context)
         self.addUserCreds(context)
         self.selectSyncFolder(context)
-        self.finishSetup()
+        self.connectAccount()
 
     def openSyncDialog(self):
         squish.clickButton(squish.waitForObject(self.CHOOSE_WHAT_TO_SYNC_BUTTON))

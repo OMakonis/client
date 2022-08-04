@@ -5,9 +5,7 @@
 #include "determineauthtypejobfactory.h"
 #include "gui/application.h"
 #include "gui/folderman.h"
-#include "jobs/checkbasicauthjobfactory.h"
 #include "jobs/resolveurljobfactory.h"
-#include "networkjobs/fetchuserinfojobfactory.h"
 #include "pages/accountconfiguredwizardpage.h"
 #include "pages/basiccredentialssetupwizardpage.h"
 #include "pages/oauthcredentialssetupwizardpage.h"
@@ -89,6 +87,9 @@ void SetupWizardController::nextStep(std::optional<PageIndex> currentPage, std::
             // we don't want to store any unnecessary certificates for this account when the user returns to the first page
             // therefore we clear the certificates storage before resolving the URL
             _accountBuilder = {};
+
+            _accessManager->deleteLater();
+            _accessManager = new AccessManager(this);
 
             const auto *pagePtr = qobject_cast<ServerUrlSetupWizardPage *>(_currentPage);
 
@@ -188,11 +189,6 @@ void SetupWizardController::nextStep(std::optional<PageIndex> currentPage, std::
         });
 
         connect(messageBox, &QMessageBox::accepted, this, [this, showFirstPage]() {
-            // when moving back to this page (or retrying a failed credentials check), we need to make sure existing cookies
-            // and certificates are deleted from the access manager
-            _accessManager->deleteLater();
-            _accessManager = new AccessManager(this);
-
             // first, we must resolve the actual server URL
             auto resolveJob = Jobs::ResolveUrlJobFactory(_accessManager).startJob(_accountBuilder.serverUrl());
 
@@ -234,7 +230,7 @@ void SetupWizardController::nextStep(std::optional<PageIndex> currentPage, std::
                         // username might not be set yet, shouldn't matter, though
                         auto oAuth = new OAuth(_accountBuilder.serverUrl(), QString(), _accessManager, {}, this);
 
-                        connect(oAuth, &OAuth::result, this, [this, newPage](OAuth::Result result, const QString &userName, const QString &token, const QString &displayName, const QString &refreshToken) {
+                        connect(oAuth, &OAuth::result, this, [this, newPage](OAuth::Result result, const QString &user, const QString &token, const QString &refreshToken) {
                             // the button may not be clicked any more, since the server has been shut down right before this signal was emitted by the OAuth instance
                             newPage->disableButtons();
 
@@ -245,8 +241,7 @@ void SetupWizardController::nextStep(std::optional<PageIndex> currentPage, std::
 
                             switch (result) {
                             case OAuth::Result::LoggedIn: {
-                                _accountBuilder.setAuthenticationStrategy(new OAuth2AuthenticationStrategy(userName, token, refreshToken));
-                                _accountBuilder.setDisplayName(displayName);
+                                _accountBuilder.setAuthenticationStrategy(new OAuth2AuthenticationStrategy(user, token, refreshToken));
                                 nextStep(1, std::nullopt);
                                 break;
                             }
@@ -315,83 +310,28 @@ void SetupWizardController::nextStep(std::optional<PageIndex> currentPage, std::
     }
 
     if (desiredPage == 2) {
-        auto moveToFinalPage = [this]() {
-            // being pessimistic by default
-            bool vfsIsAvailable = false;
-            bool enableVfsByDefault = false;
-            bool vfsModeIsExperimental = false;
+        // being pessimistic by default
+        bool vfsIsAvailable = false;
+        bool enableVfsByDefault = false;
+        bool vfsModeIsExperimental = false;
 
-            switch (bestAvailableVfsMode()) {
-            case Vfs::WindowsCfApi:
-                vfsIsAvailable = true;
-                enableVfsByDefault = true;
-                vfsModeIsExperimental = false;
-                break;
-            case Vfs::WithSuffix:
-                vfsIsAvailable = true;
-                enableVfsByDefault = false;
-                vfsModeIsExperimental = true;
-                break;
-            default:
-                break;
-            }
-
-            _currentPage = new AccountConfiguredWizardPage(FolderMan::suggestSyncFolder(_accountBuilder.serverUrl(), _accountBuilder.displayName()), vfsIsAvailable, enableVfsByDefault, vfsModeIsExperimental);
-            _wizardWindow->displayPage(_currentPage, 2);
-        };
-
-        if (_accountBuilder.authType() == DetermineAuthTypeJob::AuthType::Basic) {
-            auto strategy = dynamic_cast<HttpBasicAuthenticationStrategy *>(_accountBuilder.authenticationStrategy());
-            Q_ASSERT(strategy != nullptr);
-
-            auto checkBasicAuthJob = Jobs::CheckBasicAuthJobFactory(_accessManager, strategy->username(), strategy->password(), this).startJob(_accountBuilder.serverUrl());
-
-            auto showCredentialsPageAgain = [this, checkBasicAuthJob](const QString &error) {
-                checkBasicAuthJob->deleteLater();
-
-                if (!error.isEmpty()) {
-                    _wizardWindow->showErrorMessage(error);
-                }
-
-                _currentPage = new BasicCredentialsSetupWizardPage(_accountBuilder.serverUrl());
-                _wizardWindow->displayPage(_currentPage, 1);
-            };
-
-            connect(checkBasicAuthJob, &CoreJob::finished, this, [moveToFinalPage, checkBasicAuthJob, showCredentialsPageAgain, this, strategy]() {
-                if (checkBasicAuthJob->success()) {
-                    if (checkBasicAuthJob->result().toBool()) {
-                        auto fetchUserInfoJob = FetchUserInfoJobFactory::fromBasicAuthCredentials(_accessManager, strategy->username(), strategy->password(), this).startJob(_accountBuilder.serverUrl());
-
-                        connect(fetchUserInfoJob, &CoreJob::finished, this, [this, strategy, moveToFinalPage, showCredentialsPageAgain, fetchUserInfoJob] {
-                            if (fetchUserInfoJob->success()) {
-                                auto result = fetchUserInfoJob->result().value<FetchUserInfoResult>();
-
-                                Q_ASSERT(result.userName() == strategy->username());
-
-                                _accountBuilder.setDisplayName(result.displayName());
-
-                                moveToFinalPage();
-                            } else {
-                                showCredentialsPageAgain(tr("Failed to fetch user display name"));
-                            }
-                        });
-
-                    } else {
-                        showCredentialsPageAgain(tr("Login failed: username and/or password incorrect"));
-                    }
-
-
-                } else {
-                    showCredentialsPageAgain(tr("Login failed: %1").arg(checkBasicAuthJob->errorMessage()));
-                }
-            });
-
-            return;
-        } else {
-            // for all other possible auth types (at the moment, just OAuth2), we do not need to check the credentials, we can reasonably assume they're correct
-            moveToFinalPage();
+        switch (bestAvailableVfsMode()) {
+        case Vfs::WindowsCfApi:
+            vfsIsAvailable = true;
+            enableVfsByDefault = true;
+            vfsModeIsExperimental = false;
+            break;
+        case Vfs::WithSuffix:
+            vfsIsAvailable = true;
+            enableVfsByDefault = false;
+            vfsModeIsExperimental = true;
+            break;
+        default:
+            break;
         }
 
+        _currentPage = new AccountConfiguredWizardPage(FolderMan::suggestSyncFolder(_accountBuilder.serverUrl(), _accountBuilder.displayName()), vfsIsAvailable, enableVfsByDefault, vfsModeIsExperimental);
+        _wizardWindow->displayPage(_currentPage, 2);
         return;
     }
 

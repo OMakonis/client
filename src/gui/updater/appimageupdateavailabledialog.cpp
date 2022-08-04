@@ -27,6 +27,8 @@ AppImageUpdateAvailableDialog::AppImageUpdateAvailableDialog(const QVersionNumbe
 {
     _ui->setupUi(this);
 
+    setWindowIcon(style()->standardIcon(QStyle::SP_MessageBoxInformation));
+
     // we want an immediate response from the user
     setModal(true);
 

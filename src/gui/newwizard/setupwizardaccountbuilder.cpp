@@ -42,16 +42,6 @@ QString HttpBasicAuthenticationStrategy::davUser()
     return _username;
 }
 
-QString HttpBasicAuthenticationStrategy::username() const
-{
-    return _username;
-}
-
-QString HttpBasicAuthenticationStrategy::password() const
-{
-    return _password;
-}
-
 OAuth2AuthenticationStrategy::OAuth2AuthenticationStrategy(const QString &davUser, const QString &token, const QString &refreshToken)
     : _davUser(davUser)
     , _token(token)
@@ -109,8 +99,6 @@ AccountPtr SetupWizardAccountBuilder::build()
     newAccountPtr->setDavUser(_authenticationStrategy->davUser());
     newAccountPtr->setCredentials(_authenticationStrategy->makeCreds());
 
-    newAccountPtr->setDavDisplayName(_displayName);
-
     newAccountPtr->addApprovedCerts({ _customTrustedCaCertificates.begin(), _customTrustedCaCertificates.end() });
 
     return newAccountPtr;
@@ -127,12 +115,9 @@ bool SetupWizardAccountBuilder::hasValidCredentials() const
 
 QString SetupWizardAccountBuilder::displayName() const
 {
-    return _displayName;
-}
-
-void SetupWizardAccountBuilder::setDisplayName(const QString &displayName)
-{
-    _displayName = displayName;
+    Q_ASSERT(hasValidCredentials());
+    // TODO: get the correct display name instead of the dav user
+    return _authenticationStrategy->davUser();
 }
 
 void SetupWizardAccountBuilder::setAuthenticationStrategy(AbstractAuthenticationStrategy *strategy)
@@ -148,10 +133,5 @@ void SetupWizardAccountBuilder::addCustomTrustedCaCertificate(const QSslCertific
 void SetupWizardAccountBuilder::clearCustomTrustedCaCertificates()
 {
     _customTrustedCaCertificates.clear();
-}
-
-AbstractAuthenticationStrategy *SetupWizardAccountBuilder::authenticationStrategy() const
-{
-    return _authenticationStrategy.get();
 }
 }

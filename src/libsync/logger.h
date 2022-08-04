@@ -47,14 +47,9 @@ public:
     static Logger *instance();
 
     void setLogFile(const QString &name);
+    void setLogExpire(std::chrono::hours expire);
     void setLogDir(const QString &dir);
     void setLogFlush(bool flush);
-
-    /**
-     * Set the maximum number of logs files to keep.
-     * Setting values below 5 will have no effect.
-     */
-    void setMaxLogFiles(int i);
 
     bool logDebug() const { return _logDebug; }
     void setLogDebug(bool debug);
@@ -83,18 +78,19 @@ public:
     }
     void setLogRules(const QSet<QString> &rules);
 
+public slots:
+    void enterNextLogFile();
+
 private:
     Logger(QObject *parent = nullptr);
     ~Logger() override;
 
-    void rotateLog();
-
-    void open(const QString &name);
     void close();
     void dumpCrashLog();
 
     QFile _logFile;
     bool _doFileFlush = false;
+    std::chrono::hours _logExpire;
     bool _logDebug = false;
     QScopedPointer<QTextStream> _logstream;
     mutable QMutex _mutex;
@@ -104,8 +100,6 @@ private:
     QVector<QString> _crashLog;
     int _crashLogIndex = 0;
     bool _consoleIsAttached = false;
-
-    int _maxLogFiles;
 };
 
 } // namespace OCC

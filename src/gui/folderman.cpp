@@ -657,7 +657,6 @@ void FolderMan::setSyncEnabled(bool enabled)
         // We have things in our queue that were waiting for the connection to come back on.
         startScheduledSyncSoon();
     }
-    qCInfo(lcFolderMan) << Q_FUNC_INFO << enabled;
     _syncEnabled = enabled;
     // force a redraw in case the network connect status changed
     Q_EMIT folderSyncStateChange(nullptr);
@@ -744,7 +743,6 @@ void FolderMan::slotStartScheduledFolderSync()
         registerFolderWithSocketApi(folder);
 
         _currentSyncFolder = folder;
-        qCInfo(lcFolderMan) << "Start scheduled sync of" << folder->path();
         folder->startSync();
     }
 }
@@ -793,7 +791,7 @@ void FolderMan::slotServerVersionChanged(Account *account)
 {
     // Pause folders if the server version is unsupported
     if (account->serverVersionUnsupported()) {
-        qCWarning(lcFolderMan) << "The server version is unsupported:" << account->capabilities().status().versionString()
+        qCWarning(lcFolderMan) << "The server version is unsupported:" << account->serverVersion()
                                << "pausing all folders on the account";
 
         for (auto &f : qAsConst(_folders)) {

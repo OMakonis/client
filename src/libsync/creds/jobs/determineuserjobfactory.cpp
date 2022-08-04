@@ -12,48 +12,33 @@
  * for more details.
  */
 
-#include "fetchuserinfojobfactory.h"
+#include "determineuserjobfactory.h"
 #include "common/utility.h"
 #include "creds/httpcredentials.h"
-
 #include <QJsonParseError>
 #include <QNetworkReply>
-#include <QStringLiteral>
 
-Q_LOGGING_CATEGORY(lcFetchUserInfoJob, "sync.networkjob.fetchuserinfojob", QtInfoMsg);
+Q_LOGGING_CATEGORY(lcDetermineUserJob, "sync.networkjob.determineuserjob", QtInfoMsg);
 
-namespace OCC {
+using namespace OCC;
 
-FetchUserInfoJobFactory FetchUserInfoJobFactory::fromBasicAuthCredentials(QNetworkAccessManager *nam, const QString &username, const QString &password, QObject *parent)
-{
-    QString authorizationHeader = QStringLiteral("Basic %1").arg(QString::fromLocal8Bit(QStringLiteral("%1:%2").arg(username, password).toLocal8Bit().toBase64()));
-    return { nam, authorizationHeader, parent };
-}
-
-FetchUserInfoJobFactory FetchUserInfoJobFactory::fromOAuth2Credentials(QNetworkAccessManager *nam, const QString &bearerToken, QObject *parent)
-{
-    QString authorizationHeader = QStringLiteral("Bearer %1").arg(bearerToken);
-    return { nam, authorizationHeader, parent };
-}
-
-FetchUserInfoJobFactory::FetchUserInfoJobFactory(QNetworkAccessManager *nam, const QString &authHeaderValue, QObject *parent)
-    : AbstractCoreJobFactory(nam, parent)
-    , _authorizationHeader(authHeaderValue)
+DetermineUserJobFactory::DetermineUserJobFactory(QNetworkAccessManager *networkAccessManager, const QString &accessToken, QObject *parent)
+    : AbstractCoreJobFactory(networkAccessManager, parent)
+    , _accessToken(accessToken)
 {
 }
 
-CoreJob *FetchUserInfoJobFactory::startJob(const QUrl &url)
+CoreJob *DetermineUserJobFactory::startJob(const QUrl &url)
 {
-    auto *job = new CoreJob;
+    auto job = new CoreJob;
 
     QUrlQuery urlQuery({ { QStringLiteral("format"), QStringLiteral("json") } });
 
     auto req = makeRequest(Utility::concatUrlPath(url, QStringLiteral("ocs/v2.php/cloud/user"), urlQuery));
 
     // We are not connected yet so we need to handle the authentication manually
-    req.setRawHeader("Authorization", _authorizationHeader.toUtf8());
+    req.setRawHeader("Authorization", "Bearer " + _accessToken.toUtf8());
     req.setRawHeader(QByteArrayLiteral("OCS-APIREQUEST"), QByteArrayLiteral("true"));
-
     // We just added the Authorization header, don't let HttpCredentialsAccessManager tamper with it
     req.setAttribute(HttpCredentials::DontAddCredentialsAttribute, true);
     req.setAttribute(QNetworkRequest::AuthenticationReuseAttribute, QNetworkRequest::Manual);
@@ -66,20 +51,20 @@ CoreJob *FetchUserInfoJobFactory::startJob(const QUrl &url)
         const auto data = reply->readAll();
         const auto statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
+        qCDebug(lcDetermineUserJob) << "reply" << reply << "error" << reply->error() << "status code" << statusCode;
+        qCDebug(lcDetermineUserJob) << "data:" << data;
+
         if (reply->error() != QNetworkReply::NoError || statusCode != 200) {
             setJobError(job, tr("Failed to retrieve user info"), reply);
         } else {
-            qCDebug(lcFetchUserInfoJob) << data;
+            qCWarning(lcDetermineUserJob) << data;
 
             QJsonParseError error = {};
             const auto json = QJsonDocument::fromJson(data, &error);
 
             if (error.error == QJsonParseError::NoError) {
-                const auto jsonData = json.object().value(QStringLiteral("ocs")).toObject().value(QStringLiteral("data")).toObject();
-
-                FetchUserInfoResult result(jsonData.value(QStringLiteral("id")).toString(), jsonData.value(QStringLiteral("display-name")).toString());
-
-                setJobResult(job, QVariant::fromValue(result));
+                const QString user = json.object().value(QStringLiteral("ocs")).toObject().value(QStringLiteral("data")).toObject().value(QStringLiteral("id")).toString();
+                setJobResult(job, user);
             } else {
                 setJobError(job, error.errorString(), reply);
             }
@@ -88,5 +73,3 @@ CoreJob *FetchUserInfoJobFactory::startJob(const QUrl &url)
 
     return job;
 }
-
-} // OCC

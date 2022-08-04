@@ -34,17 +34,15 @@ public:
     bool Connect(const std::wstring& pipename);
     bool Close();
 
-    [[nodiscard]] bool SendMsg(const std::wstring &) const;
-    [[nodiscard]] bool ReadLine(std::wstring *) const;
+    bool SendMsg(const std::wstring &) const;
+    bool ReadLine(std::wstring*);
 
     HANDLE Event() { return _pipe; }
 
 private:    
     HANDLE _pipe;
-    mutable std::vector<char> _buffer;
+    std::vector<char> _buffer;
     bool _connected;
-
-    mutable OVERLAPPED _overlapped = {};
 };
 
 #endif

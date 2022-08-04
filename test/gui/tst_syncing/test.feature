@@ -1,4 +1,3 @@
-@skip @issue-9733
 Feature: Syncing files
 
     As a user

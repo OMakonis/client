@@ -13,9 +13,8 @@
  */
 
 #include "CommunicationSocket.h"
-#include "Log.h"
-#include "StringUtil.h"
 #include "UtilConstants.h"
+#include "StringUtil.h"
 
 #include <iostream>
 #include <vector>
@@ -28,8 +27,6 @@
 using namespace std;
 
 namespace {
-
-constexpr DWORD timeoutC = 100;
 
 std::wstring getUserName() {
     DWORD  len = DEFAULT_BUFLEN;
@@ -54,7 +51,6 @@ std::wstring CommunicationSocket::DefaultPipePath()
 CommunicationSocket::CommunicationSocket()
     : _pipe(INVALID_HANDLE_VALUE)
 {
-    _overlapped.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 }
 
 CommunicationSocket::~CommunicationSocket()
@@ -75,7 +71,7 @@ bool CommunicationSocket::Close()
 
 bool CommunicationSocket::Connect(const std::wstring &pipename)
 {
-    _pipe = CreateFile(pipename.data(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+    _pipe = CreateFile(pipename.data(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     if (_pipe == INVALID_HANDLE_VALUE) {
         return false;
@@ -89,25 +85,23 @@ bool CommunicationSocket::SendMsg(const wstring &message) const
     auto utf8_msg = StringUtil::toUtf8(message.data(), message.size());
 
     DWORD numBytesWritten = 0;
+    auto result = WriteFile(_pipe, utf8_msg.c_str(), static_cast<DWORD>(utf8_msg.size()), &numBytesWritten, NULL);
 
-    if (!WriteFile(_pipe, utf8_msg.c_str(), static_cast<DWORD>(utf8_msg.size()), &numBytesWritten, &_overlapped)) {
-        if (GetLastError() == ERROR_IO_PENDING) {
-            if (WaitForSingleObject(_overlapped.hEvent, timeoutC) != WAIT_OBJECT_0) {
-                OCShell::logWinError(L"SendMsg timed out");
-                return false;
-            }
-            if (!GetOverlappedResult(_pipe, &_overlapped, &numBytesWritten, FALSE)) {
-                OCShell::logWinError(L"GetOverlappedResult failed");
-                return false;
-            }
-        }
+    if (result) {
+        return true;
+    } else {
+        const_cast<CommunicationSocket*>(this)->Close();
+
+        return false;
     }
-    return true;
 }
 
-bool CommunicationSocket::ReadLine(wstring *response) const
+bool CommunicationSocket::ReadLine(wstring* response)
 {
-    assert(response);
+    if (!response) {
+        return false;
+    }
+
     response->clear();
 
     if (_pipe == INVALID_HANDLE_VALUE) {
@@ -128,24 +122,16 @@ bool CommunicationSocket::ReadLine(wstring *response) const
         DWORD totalBytesAvailable = 0;
 
         if (!PeekNamedPipe(_pipe, NULL, 0, 0, &totalBytesAvailable, 0)) {
+            Close();
             return false;
         }
         if (totalBytesAvailable == 0) {
-            return true;
+            return false;
         }
 
-        if (!ReadFile(_pipe, resp_utf8.data(), DWORD(resp_utf8.size()), &numBytesRead, &_overlapped)) {
-            if (GetLastError() == ERROR_IO_PENDING) {
-                if (WaitForSingleObject(_overlapped.hEvent, timeoutC) != WAIT_OBJECT_0) {
-                    OCShell::logWinError(L"ReadLine timed out");
-                }
-                if (!GetOverlappedResult(_pipe, &_overlapped, &numBytesRead, FALSE)) {
-                    OCShell::logWinError(L"GetOverlappedResult failed");
-                    return false;
-                }
-            } else {
-                return false;
-            }
+        if (!ReadFile(_pipe, resp_utf8.data(), DWORD(resp_utf8.size()), &numBytesRead, NULL)) {
+            Close();
+            return false;
         }
         if (numBytesRead <= 0) {
             return false;

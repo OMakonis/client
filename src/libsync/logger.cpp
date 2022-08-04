@@ -13,14 +13,14 @@
  */
 
 #include "logger.h"
+
 #include "config.h"
-#include "theme.h"
 
 #include <QCoreApplication>
 #include <QDir>
 #include <QStringList>
-#include <QtConcurrent>
 #include <QtGlobal>
+#include <qmetaobject.h>
 
 #include <iostream>
 
@@ -33,9 +33,7 @@
 #endif
 
 namespace {
-constexpr int crashLogSizeC = 20;
-constexpr int maxLogSizeC = 1024 * 1024 * 100; // 100 MiB
-constexpr int minLogsToKeepC = 5;
+constexpr int CrashLogSize = 20;
 
 #ifdef Q_OS_WIN
 bool isDebuggerPresent()
@@ -66,10 +64,9 @@ Logger *Logger::instance()
 
 Logger::Logger(QObject *parent)
     : QObject(parent)
-    , _maxLogFiles(minLogsToKeepC)
 {
     qSetMessagePattern(loggerPattern());
-    _crashLog.resize(crashLogSizeC);
+    _crashLog.resize(CrashLogSize);
 #ifndef NO_MSG_HANDLER
     qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &ctx, const QString &message) {
             Logger::instance()->doLog(type, ctx, message);
@@ -100,7 +97,7 @@ void Logger::doLog(QtMsgType type, const QMessageLogContext &ctx, const QString 
     const QString msg = qFormatLogMessage(type, ctx, message) + QLatin1Char('\n');
     {
         QMutexLocker lock(&_mutex);
-        _crashLogIndex = (_crashLogIndex + 1) % crashLogSizeC;
+        _crashLogIndex = (_crashLogIndex + 1) % CrashLogSize;
         _crashLog[_crashLogIndex] = msg;
         if (_logstream) {
             (*_logstream) << msg;
@@ -120,33 +117,7 @@ void Logger::doLog(QtMsgType type, const QMessageLogContext &ctx, const QString 
             Utility::crash();
 #endif
         }
-        if (!_logDirectory.isEmpty()) {
-            if (_logFile.size() > maxLogSizeC) {
-                rotateLog();
-            }
-        }
     }
-}
-
-void Logger::open(const QString &name)
-{
-    bool openSucceeded = false;
-    if (name == QLatin1Char('-')) {
-        attacheToConsole();
-        setLogFlush(true);
-        openSucceeded = _logFile.open(stdout, QIODevice::WriteOnly);
-    } else {
-        _logFile.setFileName(name);
-        openSucceeded = _logFile.open(QIODevice::WriteOnly);
-    }
-
-    if (!openSucceeded) {
-        std::cerr << "Failed to open the log file" << std::endl;
-        return;
-    }
-    _logstream.reset(new QTextStream(&_logFile));
-    _logstream->setCodec("UTF-8");
-    (*_logstream) << Theme::instance()->aboutVersions(Theme::VersionFormat::OneLiner) << Qt::endl;
 }
 
 void Logger::close()
@@ -171,18 +142,33 @@ void Logger::setLogFile(const QString &name)
         return;
     }
 
-    open(name);
+    bool openSucceeded = false;
+    if (name == QLatin1Char('-')) {
+        attacheToConsole();
+        setLogFlush(true);
+        openSucceeded = _logFile.open(stdout, QIODevice::WriteOnly);
+    } else {
+        _logFile.setFileName(name); 
+        openSucceeded = _logFile.open(QIODevice::WriteOnly);
+    }
+
+    if (!openSucceeded) {
+        std::cerr << "Failed to open the log file" << std::endl;
+        return;
+    }
+
+    _logstream.reset(new QTextStream(&_logFile));
+    _logstream->setCodec("UTF-8");
 }
 
-void Logger::setMaxLogFiles(int i)
+void Logger::setLogExpire(std::chrono::hours expire)
 {
-    _maxLogFiles = std::max(i, minLogsToKeepC);
+    _logExpire = expire;
 }
 
 void Logger::setLogDir(const QString &dir)
 {
     _logDirectory = dir;
-    rotateLog();
 }
 
 void Logger::setLogFlush(bool flush)
@@ -220,6 +206,8 @@ void Logger::disableTemporaryFolderLogDir()
 {
     if (!_temporaryFolderLogDir)
         return;
+
+    enterNextLogFile();
     setLogDir(QString());
     setLogDebug(false);
     setLogFile(QString());
@@ -246,8 +234,8 @@ void Logger::dumpCrashLog()
     if (logFile.open(QFile::WriteOnly)) {
         QTextStream out(&logFile);
         out.setCodec("UTF-8");
-        for (int i = 1; i <= crashLogSizeC; ++i) {
-            out << _crashLog[(_crashLogIndex + i) % crashLogSizeC];
+        for (int i = 1; i <= CrashLogSize; ++i) {
+            out << _crashLog[(_crashLogIndex + i) % CrashLogSize];
         }
     }
 }
@@ -274,7 +262,7 @@ static bool compressLog(const QString &originalName, const QString &targetName)
     return true;
 }
 
-void Logger::rotateLog()
+void Logger::enterNextLogFile()
 {
     if (!_logDirectory.isEmpty()) {
 
@@ -284,49 +272,44 @@ void Logger::rotateLog()
         }
 
         // Tentative new log name, will be adjusted if one like this already exists
-        const QString logName = dir.filePath(QStringLiteral(APPLICATION_SHORTNAME ".log"));
-        QString previousLog;
+        QDateTime now = QDateTime::currentDateTime();
+        QString newLogName = now.toString(QStringLiteral("yyyyMMdd_HHmm")) + QStringLiteral("_owncloud.log");
 
-        if (_logFile.isOpen()) {
-            _logFile.close();
-        }
-        // rename previous log file if size != 0
-        const auto info = QFileInfo(logName);
-        if (info.exists(logName) && !info.size() == 0) {
-            previousLog = dir.filePath(QStringLiteral(APPLICATION_SHORTNAME "-%1.log").arg(info.created().toString(QStringLiteral("MMdd_hh.mm.ss.zzz"))));
-            if (!QFile(logName).rename(previousLog)) {
-                std::cerr << "Failed to rename: " << qPrintable(logName) << " to " << qPrintable(previousLog) << std::endl;
-            }
-        }
-
-        const auto now = QDateTime::currentDateTime();
-        open(logName);
-        // set the creation time to now
-        _logFile.setFileTime(now, QFileDevice::FileTime::FileBirthTime);
-
-        QtConcurrent::run([now, previousLog, dir, maxLogFiles = _maxLogFiles] {
-            // Expire old log files and deal with conflicts
-            auto files = dir.entryList(QStringList(QStringLiteral("*" APPLICATION_SHORTNAME "-*.log.gz")), QDir::Files, QDir::Name);
-            if (files.size() > maxLogFiles) {
-                std::sort(files.begin(), files.end(), std::greater<QString>());
-                // remove the maxLogFiles newest, we keep them
-                files.erase(files.begin(), files.begin() + maxLogFiles);
-                for (const auto &s : files) {
-                    if (!QFile::remove(dir.absoluteFilePath(s))) {
-                        std::cerr << "Failed to remove: " << qPrintable(s) << std::endl;
-                    }
+        // Expire old log files and deal with conflicts
+        const auto &files = dir.entryList(QStringList(QStringLiteral("*owncloud.log.*")),
+            QDir::Files, QDir::Name);
+        QRegExp rx(QStringLiteral(R"(.*owncloud\.log\.(\d+).*)"));
+        int maxNumber = -1;
+        for (const auto &s : files) {
+            if (_logExpire.count() > 0) {
+                std::chrono::seconds expireSeconds(_logExpire);
+                QFileInfo fileInfo(dir.absoluteFilePath(s));
+                if (fileInfo.lastModified().addSecs(expireSeconds.count()) < now) {
+                    dir.remove(s);
                 }
             }
-            // Compress the previous log file.
-            if (!previousLog.isEmpty() && QFileInfo::exists(previousLog)) {
-                QString compressedName = QStringLiteral("%1.gz").arg(previousLog);
-                if (compressLog(previousLog, compressedName)) {
-                    QFile::remove(previousLog);
-                } else {
-                    QFile::remove(compressedName);
-                }
+            if (s.startsWith(newLogName) && rx.exactMatch(s)) {
+                maxNumber = qMax(maxNumber, rx.cap(1).toInt());
             }
-        });
+        }
+        newLogName.append(QLatin1Char('.') + QString::number(maxNumber + 1));
+
+        auto previousLog = _logFile.fileName();
+        setLogFile(dir.filePath(newLogName));
+
+        // Compress the previous log file. On a restart this can be the most recent
+        // log file.
+        auto logToCompress = previousLog;
+        if (logToCompress.isEmpty() && files.size() > 0 && !files.last().endsWith(QLatin1String(".gz")))
+            logToCompress = dir.absoluteFilePath(files.last());
+        if (!logToCompress.isEmpty()) {
+            QString compressedName = logToCompress + QStringLiteral(".gz");
+            if (compressLog(logToCompress, compressedName)) {
+                QFile::remove(logToCompress);
+            } else {
+                QFile::remove(compressedName);
+            }
+        }
     }
 }
 

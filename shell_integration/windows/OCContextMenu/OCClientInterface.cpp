@@ -15,7 +15,6 @@
 #include "OCClientInterface.h"
 
 #include "CommunicationSocket.h"
-#include "Log.h"
 #include "StringUtil.h"
 
 #include <shlobj.h>
@@ -36,6 +35,7 @@ using std::min;
 #include <gdiplus.h>
 using namespace std;
 
+#include <comdef.h>
 #include <wincrypt.h>
 #include <shlwapi.h>
 #include <wrl/client.h>
@@ -48,14 +48,29 @@ using Microsoft::WRL::ComPtr;
 
 namespace {
 
-bool sendV2(const CommunicationSocket &socket, const wstring &command, const nlohmann::json &j)
+template <typename T = wstring>
+void log(const wstring &msg, const T &error = {})
+{
+    wstringstream tmp;
+    tmp << L"ownCloud: " << msg;
+    if (!error.empty()) {
+        tmp << L" " << error.data();
+    }
+    OutputDebugStringW(tmp.str().data());
+}
+void logWinError(const wstring &msg, const DWORD &error = GetLastError())
+{
+    log(msg, wstring(_com_error(error).ErrorMessage()));
+}
+
+void sendV2(const CommunicationSocket &socket, const wstring &command, const nlohmann::json &j)
 {
     static int messageId = 0;
     const nlohmann::json json { { "id", to_string(messageId++) }, { "arguments", j } };
     const auto data = json.dump();
     wstringstream tmp;
     tmp << command << L":" << StringUtil::toUtf16(data.data(), data.size()) << L"\n";
-    return socket.SendMsg(tmp.str());
+    socket.SendMsg(tmp.str());
 }
 
 pair<wstring, nlohmann::json> parseV2(const wstring &data)
@@ -76,19 +91,19 @@ std::shared_ptr<HBITMAP> saveImage(const string &data)
     std::vector<BYTE> buf(size, 0);
     DWORD skipped;
     if (!CryptStringToBinaryA(data.data(), 0, CRYPT_STRING_BASE64, buf.data(), &size, &skipped, nullptr)) {
-        OCShell::logWinError(L"Failed to decode icon");
+        logWinError(L"Failed to decode icon");
         return {};
     }
     ComPtr<IStream> stream = SHCreateMemStream(buf.data(), size);
     if (!stream) {
-        OCShell::log(L"Failed to create stream");
+        log(L"Failed to create stream");
         return {};
     };
     HBITMAP result;
     Gdiplus::Bitmap bitmap(stream.Get(), true);
     const auto status = bitmap.GetHBITMAP(0, &result);
     if (status != Gdiplus::Ok) {
-        OCShell::log(L"Failed to get HBITMAP", to_wstring(status));
+        log(L"Failed to get HBITMAP", to_wstring(status));
         return {};
     }
     return std::shared_ptr<HBITMAP> { new HBITMAP(result), [gdiplusToken](auto o) {
@@ -109,14 +124,9 @@ OCClientInterface::ContextMenuInfo OCClientInterface::FetchInfo(const std::wstri
     if (!socket.Connect(pipename)) {
         return {};
     }
-    bool ok = sendV2(socket, L"V2/GET_CLIENT_ICON", { { "size", 16 } })
-        && socket.SendMsg(L"GET_STRINGS:CONTEXT_MENU_TITLE\n")
-        && socket.SendMsg(L"GET_MENU_ITEMS:" + files + L"\n");
-
-    if (!ok) {
-        socket.Close();
-        return {};
-    }
+    sendV2(socket, L"V2/GET_CLIENT_ICON", { { "size", 16 } });
+    socket.SendMsg(L"GET_STRINGS:CONTEXT_MENU_TITLE\n");
+    socket.SendMsg(L"GET_MENU_ITEMS:" + files + L"\n");
 
     ContextMenuInfo info;
     std::wstring response;
@@ -128,7 +138,7 @@ OCClientInterface::ContextMenuInfo OCClientInterface::FetchInfo(const std::wstri
                 const auto &arguments = msg.second["arguments"];
                 if (msg.first == L"V2/GET_CLIENT_ICON_RESULT") {
                     if (arguments.contains("error")) {
-                        OCShell::log(L"V2/GET_CLIENT_ICON failed", arguments["error"].get<string>());
+                        log(L"V2/GET_CLIENT_ICON failed", arguments["error"].get<string>());
                     } else {
                         info.icon = saveImage(arguments["png"].get<string>());
                     }
@@ -160,17 +170,17 @@ OCClientInterface::ContextMenuInfo OCClientInterface::FetchInfo(const std::wstri
     return info;
 }
 
-bool OCClientInterface::SendRequest(const wstring &verb, const std::wstring &path)
+void OCClientInterface::SendRequest(const wstring &verb, const std::wstring &path)
 {
     auto pipename = CommunicationSocket::DefaultPipePath();
 
     CommunicationSocket socket;
     if (!WaitNamedPipe(pipename.data(), PIPE_TIMEOUT)) {
-        return false;
+        return;
     }
     if (!socket.Connect(pipename)) {
-        return false;
+        return;
     }
 
-    return socket.SendMsg(verb + L":" + path + L"\n");
+    socket.SendMsg(verb + L":" + path + L"\n");
 }

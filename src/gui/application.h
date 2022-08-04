@@ -98,7 +98,7 @@ protected slots:
     void slotUseMonoIconsChanged(bool);
     void slotCleanup();
     void slotAccountStateAdded(AccountStatePtr accountState) const;
-    void slotAccountStateRemoved() const;
+    void slotAccountStateRemoved(AccountStatePtr accountState) const;
     void slotSystemOnlineConfigurationChanged(QNetworkConfiguration);
 
 private:
@@ -117,6 +117,7 @@ private:
     bool _quitInstance = false;
     QString _logFile;
     QString _logDir;
+    std::chrono::hours _logExpire;
     bool _logFlush;
     bool _logDebug;
     bool _userTriggeredConnect;

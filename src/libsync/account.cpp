@@ -291,26 +291,54 @@ bool Account::hasCapabilities() const
 void Account::setCapabilities(const Capabilities &caps)
 {
     _capabilities = caps;
+}
 
-    Q_EMIT serverVersionChanged();
+QString Account::serverProductName() const
+{
+    return _serverProduct;
+}
+
+QString Account::serverVersionString() const
+{
+    return _serverVersion;
 }
 
 bool Account::serverVersionUnsupported() const
 {
-    if (!hasCapabilities()) {
+    if (serverVersion().isNull()) {
         // not detected yet, assume it is fine.
         return false;
     }
-
-    // ocis
-    if (!capabilities().status().productversion.isEmpty()) {
+    // TODO: this is a work around for a ocis announcing version 2.0.0
+    // next version will announce ocisvison and keep version to 10
+    if (serverProductName() == QLatin1String("Infinite Scale")) {
         return false;
     }
     // Older version which is not "end of life" according to https://github.com/owncloud/core/wiki/Maintenance-and-Release-Schedule
-    if (capabilities().status().legacyVersion < QVersionNumber(10)) {
+    if (serverVersion() < QVersionNumber(10)) {
+        return true;
+    }
+    if (serverProductName().endsWith(QLatin1String("Nextcloud"))) {
         return true;
     }
     return false;
+}
+
+QVersionNumber Account::serverVersion() const
+{
+    return QVersionNumber::fromString(_serverVersion);
+}
+
+void Account::setServerInfo(const QString &version, const QString &productName)
+{
+    _serverProduct = productName;
+    if (version == _serverVersion) {
+        return;
+    }
+
+    auto oldServerVersion = _serverVersion;
+    _serverVersion = version;
+    emit serverVersionChanged(this, oldServerVersion, version);
 }
 
 QString Account::defaultSyncRoot() const

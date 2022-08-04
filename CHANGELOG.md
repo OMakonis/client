@@ -13,8 +13,6 @@ Summary
 * Bugfix - Fix status of files uploaded with TUS: [#9472](https://github.com/owncloud/client/pull/9472)
 * Bugfix - Use UTF-8 for .owncloudsync.log: [#9571](https://github.com/owncloud/client/pull/9571)
 * Bugfix - Crash when interacting with a folder in an error state: [#9600](https://github.com/owncloud/client/issues/9600)
-* Bugfix - Deadlock in folder context menu in a folder selection dialog: [#9681](https://github.com/owncloud/client/issues/9681)
-* Bugfix - Fix adding bookmarks on Gtk+ 3 based desktops: [#9752](https://github.com/owncloud/client/pull/9752)
 * Change - Make sharedialog preview be more resilient: [#8938](https://github.com/owncloud/client/issues/8938)
 * Change - We no longer persist cookies: [#9495](https://github.com/owncloud/client/issues/9495)
 * Change - We removed support for ownCloud servers < 10.0: [#9578](https://github.com/owncloud/client/issues/9578)
@@ -26,7 +24,6 @@ Summary
 * Enhancement - Remove use of legacy DAV endpoint: [#9538](https://github.com/owncloud/client/pull/9538)
 * Enhancement - Support for OCIS Spaces: [#9154](https://github.com/owncloud/client/pull/9154)
 * Enhancement - Set Windows VFS placeholders readonly if needed: [#9598](https://github.com/owncloud/client/issues/9598)
-* Enhancement - Create continuous log files: [#9731](https://github.com/owncloud/client/issues/9731)
 
 Details
 -------
@@ -62,20 +59,6 @@ Details
    using virutal files.
 
    https://github.com/owncloud/client/issues/9600
-
-* Bugfix - Deadlock in folder context menu in a folder selection dialog: [#9681](https://github.com/owncloud/client/issues/9681)
-
-   We fixed a deadlock when a user requested a context menu in a folder slection dialog on Windows.
-
-   https://github.com/owncloud/client/issues/9681
-
-* Bugfix - Fix adding bookmarks on Gtk+ 3 based desktops: [#9752](https://github.com/owncloud/client/pull/9752)
-
-   We used to add those bookmarks in a Gtk+ 2 compatible way only. Now, bookmarks are added to the
-   file belonging to Gtk+ 3, dropping support for end-of-life Gtk+ 2. The bookmarks are now shown
-   again for all Gtk+ 3 compatible file browsers, including Thunar, Nautilus, Nemo, Caja, etc.
-
-   https://github.com/owncloud/client/pull/9752
 
 * Change - Make sharedialog preview be more resilient: [#8938](https://github.com/owncloud/client/issues/8938)
 
@@ -130,20 +113,7 @@ Details
 
    https://github.com/owncloud/client/issues/9249
    https://github.com/owncloud/client/pull/9482
-   https://github.com/owncloud/client/pull/9563
    https://github.com/owncloud/client/pull/9566
-   https://github.com/owncloud/client/pull/9577
-   https://github.com/owncloud/client/pull/9596
-   https://github.com/owncloud/client/pull/9606
-   https://github.com/owncloud/client/pull/9621
-   https://github.com/owncloud/client/pull/9629
-   https://github.com/owncloud/client/pull/9636
-   https://github.com/owncloud/client/pull/9637
-   https://github.com/owncloud/client/pull/9642
-   https://github.com/owncloud/client/pull/9643
-   https://github.com/owncloud/client/pull/9697
-   https://github.com/owncloud/client/pull/9720
-   https://github.com/owncloud/client/pull/9746
 
 * Enhancement - Remove use of legacy DAV endpoint: [#9538](https://github.com/owncloud/client/pull/9538)
 
@@ -164,18 +134,6 @@ Details
 
    https://github.com/owncloud/client/issues/9598
    https://github.com/owncloud/client-desktop-vfs-win/issues/24
-
-* Enhancement - Create continuous log files: [#9731](https://github.com/owncloud/client/issues/9731)
-
-   Previously, when logging was enabled, we started a new log file for every sync. This worked
-   quite well if you sync a single account and a single folder. With spaces however we have a
-   multitude of sync folders, which resulted in hundreds of tiny log files.
-
-   Now, as soon as a log file's size exceeds 100 MiB, a new log file is started, and the old one is moved
-   and compressed. The option to delete log files older than 4h was replaced by an option to keep a
-   number of log files.
-
-   https://github.com/owncloud/client/issues/9731
 
 Changelog for ownCloud Desktop Client [2.10.1] (2022-04-05)
 =======================================

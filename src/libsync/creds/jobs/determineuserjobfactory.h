@@ -16,20 +16,22 @@
 
 #include "abstractcorejob.h"
 
-namespace OCC::Wizard::Jobs {
+namespace OCC {
 
-class CheckBasicAuthJobFactory : public AbstractCoreJobFactory
+/**
+ * Fetches the user name. For use during OAuth2 login process *only*.
+ */
+class DetermineUserJobFactory : public OCC::AbstractCoreJobFactory
 {
     Q_OBJECT
 
 public:
-    CheckBasicAuthJobFactory(QNetworkAccessManager *nam, const QString &username, const QString &password, QObject *parent = nullptr);
+    explicit DetermineUserJobFactory(QNetworkAccessManager *networkAccessManager, const QString &accessToken, QObject *parent = nullptr);
 
     CoreJob *startJob(const QUrl &url) override;
 
 private:
-    QString _username;
-    QString _password;
+    QString _accessToken;
 };
 
 }

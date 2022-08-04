@@ -24,36 +24,8 @@
 
 namespace OCC {
 
-struct OWNCLOUDSYNC_EXPORT Status
-{
-    /**
-     <installed>1</installed>
-    <maintenance>0</maintenance>
-    <needsDbUpgrade>0</needsDbUpgrade>
-    <version>10.11.0.0</version>
-    <versionstring>10.11.0</versionstring>
-    <edition>Community</edition>
-    <productname>Infinite Scale</productname>
-    <product>Infinite Scale</product>
-    <productversion>2.0.0-beta1+7c2e3201b</productversion>
-    */
 
-    Status(const QVariantMap &status);
-    // legacy version
-    QVersionNumber legacyVersion;
-    // legacy version
-    QString legacyVersionString;
-
-    QString edition;
-    QString productname;
-    QString product;
-    QString productversion;
-
-    QVersionNumber version() const;
-    QString versionString() const;
-};
-
-struct OWNCLOUDSYNC_EXPORT TusSupport
+struct TusSupport
 {
     /**
     <tus_support>
@@ -74,7 +46,7 @@ struct OWNCLOUDSYNC_EXPORT TusSupport
     bool isValid() const;
 };
 
-struct OWNCLOUDSYNC_EXPORT SpaceSupport
+struct SpaceSupport
 {
     /**
         "spaces": {
@@ -133,7 +105,6 @@ public:
     /// Wheter to use chunking
     bool bigfilechunkingEnabled() const;
 
-    const Status &status() const;
     const TusSupport &tusSupport() const;
     const SpaceSupport &spacesSupport() const;
 
@@ -237,7 +208,6 @@ private:
     QVariantMap _fileSharingPublicCapabilities;
     TusSupport _tusSupport;
     SpaceSupport _spaces;
-    Status _status;
 };
 }
 

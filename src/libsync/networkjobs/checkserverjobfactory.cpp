@@ -37,8 +37,6 @@ namespace OCC {
 
 Q_LOGGING_CATEGORY(lcCheckServerJob, "sync.checkserverjob", QtInfoMsg)
 
-CheckServerJobResult::CheckServerJobResult() = default;
-
 CheckServerJobResult::CheckServerJobResult(const QJsonObject &statusObject, const QUrl &serverUrl)
     : _statusObject(statusObject)
     , _serverUrl(serverUrl)

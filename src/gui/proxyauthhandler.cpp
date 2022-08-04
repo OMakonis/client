@@ -14,11 +14,10 @@
 
 #include "proxyauthhandler.h"
 
-#include "accessmanager.h"
-#include "account.h"
-#include "configfile.h"
 #include "proxyauthdialog.h"
 #include "theme.h"
+#include "configfile.h"
+#include "account.h"
 
 #include <QApplication>
 

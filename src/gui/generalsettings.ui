@@ -38,7 +38,7 @@
           <item row="1" column="0">
            <widget class="QCheckBox" name="monoIconsCheckBox">
             <property name="text">
-             <string>Use &amp;Monochrome Icons in the system tray</string>
+             <string>Use &amp;Monochrome Change! Icons in the system tray</string>
             </property>
            </widget>
           </item>

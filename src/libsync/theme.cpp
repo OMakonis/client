@@ -382,11 +382,13 @@ bool Theme::wizardHideFolderSizeLimitCheckbox() const
 
 QString Theme::gitSHA1(VersionFormat format) const
 {
-    const QString gitShahSort = Version::gitSha().left(6);
+#ifdef GIT_SHA1
+    const auto gitSha = QStringLiteral(GIT_SHA1);
+    const auto gitShahSort = gitSha.left(6);
     if (!aboutShowCopyright()) {
         return gitShahSort;
     }
-    const auto gitUrl = QStringLiteral("https://github.com/owncloud/client/commit/%1").arg(Version::gitSha());
+    const auto gitUrl = QStringLiteral("https://github.com/owncloud/client/commit/%1").arg(gitSha);
     switch (format) {
     case Theme::VersionFormat::OneLiner:
         Q_FALLTHROUGH();
@@ -397,6 +399,7 @@ QString Theme::gitSHA1(VersionFormat format) const
     case Theme::VersionFormat::RichText:
         return QStringLiteral("<a href=\"%1\">%3</a>").arg(gitUrl, gitShahSort);
     }
+#endif
     return QString();
 }
 
@@ -419,13 +422,13 @@ QString Theme::aboutVersions(Theme::VersionFormat format) const
     const QString qtVersionString = (QLatin1String(QT_VERSION_STR) == qtVersion ? qtVersion : QCoreApplication::translate("ownCloudTheme::qtVer", "%1 (Built against Qt %1)").arg(qtVersion, QStringLiteral(QT_VERSION_STR)));
     QString _version = Version::displayString();
     QString gitUrl;
-    if (!Version::gitSha().isEmpty()) {
-        if (format != Theme::VersionFormat::Url) {
-            _version = QCoreApplication::translate("ownCloudTheme::versionWithSha", "%1 %2").arg(_version, gitSHA1(format));
-        } else {
-            gitUrl = gitSHA1(format) + br;
-        }
+#ifdef GIT_SHA1
+    if (format != Theme::VersionFormat::Url) {
+        _version = QCoreApplication::translate("ownCloudTheme::versionWithSha", "%1 %2").arg(_version, gitSHA1(format));
+    } else {
+        gitUrl = gitSHA1(format) + br;
     }
+#endif
     return QCoreApplication::translate("ownCloudTheme::aboutVersions()",
         "%1 %2 %3%8"
         "%9"
