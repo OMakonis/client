@@ -147,6 +147,7 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
         this, &AccountSettings::slotFolderListClicked);
     connect(ui->_folderList, &QTreeView::expanded, this, &AccountSettings::refreshSelectiveSyncStatus);
     connect(ui->_folderList, &QTreeView::collapsed, this, &AccountSettings::refreshSelectiveSyncStatus);
+    connect(ui->_folderList, &QAbstractItemView::clicked, this, &QTreeView::expand);
     connect(ui->selectiveSyncNotification, &QLabel::linkActivated,
         this, &AccountSettings::slotLinkActivated);
     connect(_model, &FolderStatusModel::suggestExpand, ui->_folderList, &QTreeView::expand);
@@ -358,7 +359,7 @@ void AccountSettings::slotCustomContextMenuRequested(const QPoint &pos)
         && !folder->virtualFilesEnabled() && FolderMan::instance()->checkVfsAvailability(folder->path())) {
         const auto mode = bestAvailableVfsMode();
         if (mode == Vfs::WindowsCfApi || Theme::instance()->enableExperimentalFeatures()) {
-            ac = menu->addAction(tr("Enable virtual file support%1...").arg(mode == Vfs::WindowsCfApi ? QString() : tr(" (experimental)")));
+            ac = menu->addAction(tr("Enable virtual file support%1").arg(mode == Vfs::WindowsCfApi ? QString() : tr("")));
             connect(ac, &QAction::triggered, this, &AccountSettings::slotEnableVfsCurrentFolder);
         }
     }
