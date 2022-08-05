@@ -87,8 +87,9 @@ QVariant ProtocolItemModel::data(const QModelIndex &index, int role) const
                 return Theme::instance()->themeActionIcon(QStringLiteral("state-error"));
             } else if (Progress::isWarningKind(status) || status == SyncFileItem::Excluded) {
                 return Theme::instance()->themeActionIcon(QStringLiteral("state-information"));
-            } else {
-                if(item.message() == QStringLiteral("Deleted")) return return Theme::instance()->themeActionIcon(QStringLiteral("state-error"));
+            } else if (item.message() == QStringLiteral("Deleted")){
+                return Theme::instance()->themeActionIcon(QStringLiteral("state-error"));
+            } else
                 return Theme::instance()->themeActionIcon(QStringLiteral("state-ok"));
             }
         }
