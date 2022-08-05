@@ -81,7 +81,7 @@ QVariant ProtocolItemModel::data(const QModelIndex &index, int role) const
     case Qt::DecorationRole:
         if (column == ProtocolItemRole::Action) {
             const auto status = item.status();
-            QString iconType = Progress::asResultString(item);
+            QString iconType = item.message();
             if (status == SyncFileItem::NormalError
                 || status == SyncFileItem::FatalError
                 || status == SyncFileItem::DetailError
