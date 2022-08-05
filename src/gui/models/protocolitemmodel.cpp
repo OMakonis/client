@@ -12,7 +12,6 @@
  * for more details.
  */
 #include "protocolitemmodel.h"
-#include "progressdispatcher.h"
 
 #include "account.h"
 #include "accountstate.h"
@@ -81,7 +80,6 @@ QVariant ProtocolItemModel::data(const QModelIndex &index, int role) const
     case Qt::DecorationRole:
         if (column == ProtocolItemRole::Action) {
             const auto status = item.status();
-            QString iconType = item.message();
             if (status == SyncFileItem::NormalError
                 || status == SyncFileItem::FatalError
                 || status == SyncFileItem::DetailError
@@ -90,7 +88,7 @@ QVariant ProtocolItemModel::data(const QModelIndex &index, int role) const
             } else if (Progress::isWarningKind(status) || status == SyncFileItem::Excluded) {
                 return Theme::instance()->themeActionIcon(QStringLiteral("state-information"));
             } else {
-                return Theme::instance()->themeActionIcon(QStringLiteral(iconType));
+                return Theme::instance()->themeActionIcon(QStringLiteral("state-ok"));
             }
         }
         break;
