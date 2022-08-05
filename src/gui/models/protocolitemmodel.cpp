@@ -88,6 +88,7 @@ QVariant ProtocolItemModel::data(const QModelIndex &index, int role) const
             } else if (Progress::isWarningKind(status) || status == SyncFileItem::Excluded) {
                 return Theme::instance()->themeActionIcon(QStringLiteral("state-information"));
             } else {
+                if(item.message() == QStringLiteral("Deleted")) return return Theme::instance()->themeActionIcon(QStringLiteral("state-error"));
                 return Theme::instance()->themeActionIcon(QStringLiteral("state-ok"));
             }
         }
