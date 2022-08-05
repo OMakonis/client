@@ -80,6 +80,7 @@ QVariant ProtocolItemModel::data(const QModelIndex &index, int role) const
     case Qt::DecorationRole:
         if (column == ProtocolItemRole::Action) {
             const auto status = item.status();
+            const auto icon = item.message();
             if (status == SyncFileItem::NormalError
                 || status == SyncFileItem::FatalError
                 || status == SyncFileItem::DetailError
@@ -88,7 +89,7 @@ QVariant ProtocolItemModel::data(const QModelIndex &index, int role) const
             } else if (Progress::isWarningKind(status) || status == SyncFileItem::Excluded) {
                 return Theme::instance()->themeActionIcon(QStringLiteral("state-information"));
             } else {
-                return Theme::instance()->themeActionIcon(QStringLiteral(item.message()));
+                return Theme::instance()->themeActionIcon(QStringLiteral(icon));
             }
         }
         break;
