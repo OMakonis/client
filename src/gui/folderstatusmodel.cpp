@@ -568,8 +568,8 @@ void FolderStatusModel::fetchMore(const QModelIndex &parent)
     LsColJob *job = new LsColJob(_accountState->account(), path, this);
     info->_fetchingJob = job;
     job->setProperties(QList<QByteArray>() << "resourcetype"
-                                           << "http://owncloud.org/ns:size"
-                                           << "http://owncloud.org/ns:permissions");
+                                           << "https://webdav.files.fm/ns:size"
+                                           << "https://webdav.files.fm/ns:permissions");
     job->setTimeout(60 * 1000);
     connect(job, &LsColJob::directoryListingSubfolders,
         this, &FolderStatusModel::slotUpdateDirectories);

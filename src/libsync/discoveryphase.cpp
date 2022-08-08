@@ -110,7 +110,7 @@ void DiscoveryPhase::checkSelectiveSyncNewFolder(const QString &path, RemotePerm
     // do a PROPFIND to know the size of this folder
     auto propfindJob = new PropfindJob(_account, _remoteFolder + path, this);
     propfindJob->setProperties(QList<QByteArray>() << "resourcetype"
-                                                   << "http://owncloud.org/ns:size");
+                                                   << "https://webdav.files.fm/ns:size");
     QObject::connect(propfindJob, &PropfindJob::finishedWithError,
         this, [=] { return callback(false); });
     QObject::connect(propfindJob, &PropfindJob::result, this, [=](const QMap<QString, QString> &values) {
@@ -350,16 +350,16 @@ void DiscoverySingleDirectoryJob::start()
           << "getlastmodified"
           << "getcontentlength"
           << "getetag"
-          << "http://owncloud.org/ns:id"
-          << "http://owncloud.org/ns:downloadURL"
-          << "http://owncloud.org/ns:dDC"
-          << "http://owncloud.org/ns:permissions"
-          << "http://owncloud.org/ns:checksums";
+          << "https://webdav.files.fm//ns:id"
+          << "https://webdav.files.fm//ns:downloadURL"
+          << "https://webdav.files.fm//ns:dDC"
+          << "https://webdav.files.fm//ns:permissions"
+          << "https://webdav.files.fm//ns:checksums";
     if (_isRootPath)
-        props << "http://owncloud.org/ns:data-fingerprint";
+        props << "https://webdav.files.fm//ns:data-fingerprint";
     if (_account->serverVersionInt() >= Account::makeServerVersion(10, 0, 0)) {
         // Server older than 10.0 have performances issue if we ask for the share-types on every PROPFIND
-        props << "http://owncloud.org/ns:share-types";
+        props << "https://webdav.files.fm//ns:share-types";
     }
 
     lsColJob->setProperties(props);
