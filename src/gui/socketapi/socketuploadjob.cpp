@@ -54,7 +54,7 @@ void SocketUploadJob::prepareTag(const AccountPtr &account)
     auto tagJob = new OCC::SimpleNetworkJob(account, this);
     connect(tagJob, &OCC::SimpleNetworkJob::finishedSignal, this, [account, this] {
         auto propfindJob = new OCC::LsColJob(account, tagUrl(account), this);
-        propfindJob->setProperties({ QByteArrayLiteral("https://webdav.files.fm/ns:display-name"), QByteArrayLiteral("https://webdav.files.fm/ns:id") });
+        propfindJob->setProperties({ QByteArrayLiteral("http://owncloud.org/ns:display-name"), QByteArrayLiteral("http://owncloud.org/ns:id") });
 
         connect(propfindJob, &LsColJob::directoryListingIterated, this, [this](const QString &, const QMap<QString, QString> &data) {
             if (data[QStringLiteral("display-name")] == backupTagNameC()) {
@@ -167,7 +167,7 @@ void SocketUploadJob::start()
 
         // we need the int file id without the instance id so we can't use the OC-FileId
         auto propfindJob = new PropfindJob(engine->account(), remotePath, this);
-        propfindJob->setProperties({ QByteArrayLiteral("https://webdav.files.fm/ns:fileid") });
+        propfindJob->setProperties({ QByteArrayLiteral("http://owncloud.org/ns:fileid") });
 
         connect(propfindJob, &PropfindJob::result, this, [engine, this](const QMap<QString, QString> &data) {
             _backupFileId = data[QStringLiteral("fileid")].toUtf8();

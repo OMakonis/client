@@ -128,7 +128,7 @@ ShareDialog::ShareDialog(QPointer<AccountState> accountState,
     // older versions will just return share-permissions: ""
     auto job = new PropfindJob(accountState->account(), _sharePath);
     job->setProperties({ QByteArrayLiteral("http://open-collaboration-services.org/ns:share-permissions"),
-        QByteArrayLiteral("https://webdav.files.fm/ns:privatelink") });
+        QByteArrayLiteral("http://owncloud.org/ns:privatelink") });
     job->setTimeout(10 * 1000);
     connect(job, &PropfindJob::result, this, &ShareDialog::slotPropfindReceived);
     connect(job, &PropfindJob::finishedWithError, this, &ShareDialog::slotPropfindError);

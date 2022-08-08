@@ -108,7 +108,7 @@ void SelectiveSyncWidget::refreshFolders()
 {
     LsColJob *job = new LsColJob(_account, _folderPath, this);
     job->setProperties(QList<QByteArray>() << "resourcetype"
-                                           << "https://webdav.files.fm/ns:size");
+                                           << "http://owncloud.org/ns:size");
     connect(job, &LsColJob::directoryListingSubfolders,
         this, &SelectiveSyncWidget::slotUpdateDirectories);
     connect(job, &LsColJob::finishedWithError,
@@ -274,7 +274,7 @@ void SelectiveSyncWidget::slotItemExpanded(QTreeWidgetItem *item)
         return;
     LsColJob *job = new LsColJob(_account, _folderPath + dir, this);
     job->setProperties(QList<QByteArray>() << "resourcetype"
-                                           << "https://webdav.files.fm/ns:size");
+                                           << "http://owncloud.org/ns:size");
     connect(job, &LsColJob::directoryListingSubfolders,
         this, &SelectiveSyncWidget::slotUpdateDirectories);
     job->start();

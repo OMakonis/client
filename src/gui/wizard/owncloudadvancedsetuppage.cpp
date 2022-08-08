@@ -138,7 +138,7 @@ void OwncloudAdvancedSetupPage::initializePage()
 
     auto acc = owncloudWizard()->account();
     auto quotaJob = new PropfindJob(acc, owncloudWizard()->remoteFolder(), this);
-    quotaJob->setProperties(QList<QByteArray>() << "https://webdav.files.fm/ns:size");
+    quotaJob->setProperties(QList<QByteArray>() << "http://owncloud.org/ns:size");
 
     connect(quotaJob, &PropfindJob::result, this, &OwncloudAdvancedSetupPage::slotQuotaRetrieved);
     quotaJob->start();

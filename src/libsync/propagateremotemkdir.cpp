@@ -115,7 +115,7 @@ void PropagateRemoteMkdir::slotMkcolJobFinished()
 
     propagator()->_activeJobList.append(this);
     auto propfindJob = new PropfindJob(_job->account(), _job->path(), this);
-    propfindJob->setProperties({"https://webdav.files.fm/ns:permissions"});
+    propfindJob->setProperties({"http://owncloud.org/ns:permissions"});
     connect(propfindJob, &PropfindJob::result, this, [this](const QMap<QString, QString> &result) {
         propagator()->_activeJobList.removeOne(this);
         _item->_remotePerm = RemotePermissions::fromServerString(result.value(QStringLiteral("permissions")));
