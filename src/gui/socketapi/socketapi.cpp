@@ -949,6 +949,7 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
 
     auto capabilities = fileData.folder->accountState()->account()->capabilities();
     auto theme = Theme::instance();
+    listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy private link to clipboard"));
     if (!capabilities.shareAPI() || !(theme->userGroupSharing() || (theme->linkSharing() && capabilities.sharePublicLink())))
         return;
 
@@ -972,9 +973,6 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
             listener->sendMessage(QStringLiteral("MENU_ITEM:MANAGE_PUBLIC_LINKS") + flagString + tr("Copy public link to clipboard"));
         }
     }
-
-    listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy private link to clipboard"));
-
     // Disabled: only providing email option for private links would look odd,
     // and the copy option is more general.
     //listener->sendMessage(QLatin1String("MENU_ITEM:EMAIL_PRIVATE_LINK") + flagString + tr("Send private link by email..."));
