@@ -707,6 +707,7 @@ void SocketApi::fetchPrivateLinkUrlHelper(const QString &localFile, const std::f
 
     auto record = fileData.journalRecord();
     if (!record.isValid())
+        qCWarning(lcSocketApi) << "Record not valid " << localFile;
         return;
 
     fetchPrivateLinkUrl(
