@@ -917,6 +917,7 @@ void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath, QObject 
             targetFun(privateLinkUrl);
         }
     });
+    qCWarning(lcSocketApi) << "Record not valid " << localFile;
     job->start();
 }
 
