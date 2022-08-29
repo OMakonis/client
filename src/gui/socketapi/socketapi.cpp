@@ -729,6 +729,7 @@ void SocketApi::command_EMAIL_PRIVATE_LINK(const QString &localFile, SocketListe
 
 void SocketApi::command_OPEN_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
+    Utility::openBrowser("https://www.youtube.com");
     fetchPrivateLinkUrlHelper(localFile, &SocketApi::openPrivateLink);
 }
 

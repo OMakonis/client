@@ -917,7 +917,6 @@ void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath, QObject 
             targetFun(privateLinkUrl);
         }
     });
-    helper->sendCommand(QByteArray("Copy"));
     job->start();
 }
 
