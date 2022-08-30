@@ -1,3 +1,7 @@
+# TODO: OSX and LIB_ONLY seem to require this to go to binary dir only
+if(NOT TOKEN_AUTH_ONLY)
+endif()
+
 find_package(Qt5 5.12 COMPONENTS Core Network Xml Concurrent REQUIRED)
 get_target_property (QT_QMAKE_EXECUTABLE Qt5::qmake IMPORTED_LOCATION)
 message(STATUS "Using Qt ${Qt5Core_VERSION} (${QT_QMAKE_EXECUTABLE})")
@@ -8,7 +12,7 @@ if(NOT TOKEN_AUTH_ONLY)
 endif()
 
 # TODO: Mingw64 7.3 might also need to be excluded here as it seems to not automatically link libssp
-if(NOT WIN32)
+if(NOT MSVC)
   if(NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "^(alpha|parisc|hppa)") AND NOT CMAKE_CROSSCOMPILING)
     if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9))
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector --param=ssp-buffer-size=4")
@@ -37,6 +41,14 @@ elseif(UNIX AND NOT APPLE)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,relro -Wl,-z,now")
 endif()
 
+#
+# FilesFM
+#
+include_directories(${CMAKE_SOURCE_DIR}/src/filesfm/include)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/filesfm)
+
+set(WITH_CRASHREPORTER true)
+
 add_subdirectory(csync)
 add_subdirectory(libsync)
 if (NOT BUILD_LIBRARIES_ONLY)
@@ -46,7 +58,24 @@ if (NOT BUILD_LIBRARIES_ONLY)
     add_subdirectory(cmd)
 
     if (WITH_CRASHREPORTER)
-        add_subdirectory(3rdparty/libcrashreporter-qt EXCLUDE_FROM_ALL)
+        add_subdirectory(3rdparty/libcrashreporter-qt)
         add_subdirectory(crashreporter)
     endif()
 endif(NOT BUILD_LIBRARIES_ONLY)
+
+
+find_program(KRAZY2_EXECUTABLE krazy2)
+if(KRAZY2_EXECUTABLE)
+    # s/y k/y ALL k/ for building this target always
+    add_custom_target( krazy krazy2 --check-sets c++,qt4,foss
+                       ${PROJECT_SOURCE_DIR}/src/libsync/*.ui
+                       ${PROJECT_SOURCE_DIR}/src/libsync/*.h
+                       ${PROJECT_SOURCE_DIR}/src/libsync/*.cpp
+                       ${PROJECT_SOURCE_DIR}/src/gui/*.ui
+                       ${PROJECT_SOURCE_DIR}/src/gui/*.h
+                       ${PROJECT_SOURCE_DIR}/src/gui/*.cpp
+                       ${PROJECT_SOURCE_DIR}/src/cmd/*.h
+                       ${PROJECT_SOURCE_DIR}/src/cmd/*.cpp
+)
+endif()
+
