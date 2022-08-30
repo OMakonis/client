@@ -76,6 +76,9 @@
 // The second number should be changed when there are new features.
 #define MIRALL_SOCKET_API_VERSION "1.1"
 
+#include <filesfm.h>
+
+
 namespace {
 
 const QLatin1Char RecordSeparator()
@@ -1181,6 +1184,42 @@ void SocketApi::command_GET_MENU_ITEMS(const QString &argument, OCC::SocketListe
             case VfsItemAvailability::OnlineOnly:
                 makePinContextMenu(true, false);
                 break;
+            }
+        }
+    }
+
+    if ( folder && FilesFM::FilesFM::Instance != 0 )
+    {
+        auto file = files.first().toStdWString();
+        auto isSingleFile = files.size() == 1;
+        auto useFileLocking = FilesFM::FilesFM::Instance->Folders.GetUseFileLocking(file);
+
+        wstring vfsSuffix = L".filesfm";
+        auto isPlaceholder = file.substr(file.size() - vfsSuffix.size()).compare(vfsSuffix) == 0;
+        
+
+        QLatin1String disabled;
+        
+        // listener->sendMessage(QLatin1String("MENU_ITEM:-::-"));
+        disabled = (isSingleFile) ? QLatin1String("") : QLatin1String("d");
+
+        listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_FILE:") + disabled + tr(":") + tr("Open in web"));
+        listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SHARE:") + disabled + tr(":") + tr("Share"));
+        listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE:") + disabled + tr(":") + tr("Send message"));
+        listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_FILE_VERSIONS:") + disabled + tr(":") + tr("View old versions"));
+
+        // listener->sendMessage(QLatin1String("MENU_ITEM:-::-"));
+        //disabled = (isPlaceholder || !isSingleFile || !useFileLocking) ? QLatin1String("d") : QLatin1String("");
+        
+        if ( isSingleFile & useFileLocking ) // !isPlaceholder && 
+        {
+            if ( isPlaceholder )
+            {
+                listener->sendMessage(QLatin1String("MENU_ITEM:LOCK_PLACEHOLDER_FILE:") + tr(":") + tr("Lock file"));
+                listener->sendMessage(QLatin1String("MENU_ITEM:UNLOCK_PLACEHOLDER_FILE:") + tr(":") + tr("Unlock file"));
+            }else{
+                listener->sendMessage(QLatin1String("MENU_ITEM:LOCK_FILE:") + tr(":") + tr("Lock file"));
+                listener->sendMessage(QLatin1String("MENU_ITEM:UNLOCK_FILE:") + tr(":") + tr("Unlock file"));
             }
         }
     }
