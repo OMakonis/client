@@ -730,7 +730,7 @@ void SocketApi::command_EMAIL_PRIVATE_LINK(const QString &localFile, SocketListe
 void SocketApi::command_OPEN_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
     auto fileData = FileData::get(localFile);
-    AccountPtr account = fileData.folder->accountState()->account()->displayName();
+    QString account = fileData.folder->accountState()->account()->displayName();
     const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=open&path=%2")
         .arg(account, fileData.serverRelativePath);
     Utility::openBrowser(link, nullptr);
