@@ -731,7 +731,7 @@ void SocketApi::command_OPEN_PRIVATE_LINK(const QString &localFile, SocketListen
 {
     auto fileData = FileData::get(localFile);
     const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=open&path=%2")
-        .arg(fileData.folder->Username, fileData.serverRelativePath);
+        .arg(account->credentials()->user(), fileData.serverRelativePath);
     Utility::openBrowser(link, nullptr);
     fetchPrivateLinkUrlHelper(localFile, &SocketApi::openPrivateLink);
 }
