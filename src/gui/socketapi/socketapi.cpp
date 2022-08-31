@@ -716,14 +716,18 @@ void SocketApi::fetchPrivateLinkUrlHelper(const QString &localFile, const std::f
         this,
         targetFun);
 }
-
-void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
+QString SocketApi::fillData(const QString &localFile)
 {
     auto fileData = FileData::get(localFile);
     QString account = fileData.folder->accountState()->account()->credentials()->user();
     const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=open&path=%2")
         .arg(account, fileData.serverRelativePath);
-    copyUrlToClipboard(link);
+    return link;
+}
+
+void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
+{
+    copyUrlToClipboard(fillData(localFile));
 }
 
 void SocketApi::command_EMAIL_PRIVATE_LINK(const QString &localFile, SocketListener *)
