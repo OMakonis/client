@@ -733,7 +733,16 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
     const QString link = QStringLiteral("https://files.fm/%1%2").arg(account, fileData.serverRelativePath);
     copyUrlToClipboard(link);
 }
-
+void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
+{
+    const QString command =  QStringLiteral("send_message");
+    Utility::openBrowser(createLink(localFile, command), nullptr);
+}
+void SocketApi::command_OPEN_BROWSER_FILE_VERSION(const QString &localFile, SocketListener *listener)
+{
+    const QString command =  QStringLiteral("view_versions");
+    Utility::openBrowser(createLink(localFile, command), nullptr);
+}
 void SocketApi::command_EMAIL_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
     fetchPrivateLinkUrlHelper(localFile, &SocketApi::emailPrivateLink);
@@ -967,8 +976,9 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
     // If sharing is globally disabled, do not show any sharing entries.
     // If there is no permission to share for this file, add a disabled entry saying so
     
-    listener->sendMessage(QStringLiteral("MENU_ITEM:SHARE") + flagString + tr("Share..."));
-    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE:") + flagString + tr(":") + tr("Send message"));
+    listener->sendMessage(QStringLiteral("MENU_ITEM:SHARE") + flagString + tr("Share"));
+    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE") + flagString + tr("Send message"));
+    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_FILE_VERSION") + flagString + tr("View old versions"));
     
     // Do we have public links?
     bool publicLinksEnabled = theme->linkSharing() && capabilities.sharePublicLink();
