@@ -15,8 +15,7 @@
 #ifndef FOLDERSTATUSMODEL_H
 #define FOLDERSTATUSMODEL_H
 
-#include "accountfwd.h"
-
+#include <accountfwd.h>
 #include <QAbstractItemModel>
 #include <QLoggingCategory>
 #include <QVector>
@@ -42,11 +41,10 @@ class FolderStatusModel : public QAbstractItemModel
 public:
     FolderStatusModel(QObject *parent = nullptr);
     ~FolderStatusModel() override;
-    void setAccountState(const AccountStatePtr &accountState);
+    void setAccountState(const AccountState *accountState);
 
     Qt::ItemFlags flags(const QModelIndex &) const override;
     QVariant data(const QModelIndex &index, int role) const override;
-    Folder *folder(const QModelIndex &index) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -93,7 +91,7 @@ public:
         bool hasLabel() const;
 
         // Reset all subfolders and fetch status
-        void resetSubs(FolderStatusModel *model, const QModelIndex &index);
+        void resetSubs(FolderStatusModel *model, QModelIndex index);
 
         struct Progress
         {
@@ -112,19 +110,14 @@ public:
             int _overallPercent;
         };
         Progress _progress;
-
-        std::chrono::steady_clock::time_point _lastProgressUpdated = std::chrono::steady_clock::now();
     };
 
+    QVector<SubFolderInfo> _folders;
 
-    enum ItemType {
-        RootFolder,
+    enum ItemType { RootFolder,
         SubFolder,
         AddButton,
-        FetchLabel
-    };
-    Q_ENUM(ItemType);
-
+        FetchLabel };
     ItemType classify(const QModelIndex &index) const;
     SubFolderInfo *infoForIndex(const QModelIndex &index) const;
 
@@ -143,7 +136,7 @@ public slots:
     void resetFolders();
     void slotSyncAllPendingBigFolders();
     void slotSyncNoPendingBigFolders();
-    void slotSetProgress(const ProgressInfo &progress, Folder *f);
+    void slotSetProgress(const ProgressInfo &progress);
 
 private slots:
     void slotUpdateDirectories(const QStringList &);
@@ -162,12 +155,8 @@ private slots:
 private:
     QStringList createBlackList(const OCC::FolderStatusModel::SubFolderInfo &root,
         const QStringList &oldBlackList) const;
-    void computeProgress(const ProgressInfo &progress, SubFolderInfo::Progress *pi);
-    int indexOf(Folder *f) const;
-
-    AccountStatePtr _accountState;
+    const AccountState *_accountState;
     bool _dirty; // If the selective sync checkboxes were changed
-    QVector<SubFolderInfo> _folders;
 
     /**
      * Keeps track of items that are fetching data from the server.
