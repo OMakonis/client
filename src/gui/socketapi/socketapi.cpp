@@ -975,11 +975,7 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
 
     // If sharing is globally disabled, do not show any sharing entries.
     // If there is no permission to share for this file, add a disabled entry saying so
-    
-    listener->sendMessage(QStringLiteral("MENU_ITEM:SHARE") + flagString + tr("Share"));
-    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE") + flagString + tr("Send message"));
-    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_FILE_VERSIONS") + flagString + tr("View old versions"));
-    
+
     // Do we have public links?
     bool publicLinksEnabled = theme->linkSharing() && capabilities.sharePublicLink();
 
@@ -988,7 +984,9 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
         && !capabilities.sharePublicLinkEnforcePasswordForReadOnly();
     
     listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy public link to clipboard"));
-    
+    listener->sendMessage(QStringLiteral("MENU_ITEM:SHARE") + flagString + tr("Share"));
+    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE") + flagString + tr("Send message"));
+    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_FILE_VERSIONS") + flagString + tr("View old versions"));
     // Disabled: only providing email option for private links would look odd,
     // and the copy option is more general.
     //listener->sendMessage(QLatin1String("MENU_ITEM:EMAIL_PRIVATE_LINK") + flagString + tr("Send private link by email..."));
@@ -1070,9 +1068,8 @@ void SocketApi::command_GET_MENU_ITEMS(const QString &argument, OCC::SocketListe
         auto flagString = isOnTheServer ? QLatin1String("::") : QLatin1String(":d:");
 
         if (fileData.folder && fileData.folder->accountState()->isConnected()) {
-            sendSharingContextMenuOptions(fileData, listener);
             listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_PRIVATE_LINK") + flagString + tr("Open in browser"));
-
+            sendSharingContextMenuOptions(fileData, listener);
             // Add link to versions pane if possible
             auto &capabilities = folder->accountState()->account()->capabilities();
             if (capabilities.versioningEnabled()
