@@ -968,7 +968,8 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
     // If there is no permission to share for this file, add a disabled entry saying so
     
     listener->sendMessage(QStringLiteral("MENU_ITEM:SHARE") + flagString + tr("Share..."));
-
+    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE:") + flagString + tr(":") + tr("Send message"));
+    
     // Do we have public links?
     bool publicLinksEnabled = theme->linkSharing() && capabilities.sharePublicLink();
 
@@ -977,6 +978,7 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
         && !capabilities.sharePublicLinkEnforcePasswordForReadOnly();
     
     listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy public link to clipboard"));
+    
     // Disabled: only providing email option for private links would look odd,
     // and the copy option is more general.
     //listener->sendMessage(QLatin1String("MENU_ITEM:EMAIL_PRIVATE_LINK") + flagString + tr("Send private link by email..."));
