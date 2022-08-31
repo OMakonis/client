@@ -729,7 +729,7 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
 {
     auto fileData = FileData::get(localFile);
     QString account = fileData.folder->accountState()->account()->credentials()->user();
-    const QString link = QStringLiteral("https://files.fm/%1/%2").arg(account, fileData.serverRelativePath);
+    const QString link = QStringLiteral("https://files.fm/%1%2").arg(account, fileData.serverRelativePath);
     copyUrlToClipboard(link);
 }
 
