@@ -738,7 +738,7 @@ void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, Sock
     const QString command =  QStringLiteral("send_message");
     Utility::openBrowser(createLink(localFile, command), nullptr);
 }
-void SocketApi::command_OPEN_BROWSER_FILE_VERSION(const QString &localFile, SocketListener *listener)
+void SocketApi::command_OPEN_BROWSER_FILE_VERSIONS(const QString &localFile, SocketListener *listener)
 {
     const QString command =  QStringLiteral("view_versions");
     Utility::openBrowser(createLink(localFile, command), nullptr);
@@ -978,7 +978,7 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
     
     listener->sendMessage(QStringLiteral("MENU_ITEM:SHARE") + flagString + tr("Share"));
     listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE") + flagString + tr("Send message"));
-    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_FILE_VERSION") + flagString + tr("View old versions"));
+    listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_FILE_VERSIONS") + flagString + tr("View old versions"));
     
     // Do we have public links?
     bool publicLinksEnabled = theme->linkSharing() && capabilities.sharePublicLink();
