@@ -727,7 +727,10 @@ QString SocketApi::fillData(const QString &localFile)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    copyUrlToClipboard(fillData(localFile));
+    auto fileData = FileData::get(localFile);
+    QString account = fileData.folder->accountState()->account()->credentials()->user();
+    const QString link = QStringLiteral("https://files.fm/%1/%2").arg(account, fileData.serverRelativePath);
+    copyUrlToClipboard(link);
 }
 
 void SocketApi::command_EMAIL_PRIVATE_LINK(const QString &localFile, SocketListener *)
