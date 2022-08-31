@@ -716,12 +716,12 @@ void SocketApi::fetchPrivateLinkUrlHelper(const QString &localFile, const std::f
         this,
         targetFun);
 }
-QString SocketApi::fillData(const QString &localFile)
+QString SocketApi::createLink(const QString &localFile, const QString command)
 {
     auto fileData = FileData::get(localFile);
     QString account = fileData.folder->accountState()->account()->credentials()->user();
-    const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=open&path=%2")
-        .arg(account, fileData.serverRelativePath);
+    const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=%2&path=%3")
+        .arg(account, command, fileData.serverRelativePath);
     return link;
 }
 
@@ -740,7 +740,8 @@ void SocketApi::command_EMAIL_PRIVATE_LINK(const QString &localFile, SocketListe
 
 void SocketApi::command_OPEN_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    Utility::openBrowser(fillData(localFile), nullptr);
+    const QString command =  QStringLiteral("open");
+    Utility::openBrowser(createLink(localFile, command), nullptr);
 }
 
 void SocketApi::command_OPEN_PRIVATE_LINK_VERSIONS(const QString &localFile, SocketListener *)
@@ -973,14 +974,8 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
     // Is is possible to create a public link without user choices?
     bool canCreateDefaultPublicLink = publicLinksEnabled
         && !capabilities.sharePublicLinkEnforcePasswordForReadOnly();
-
-    if (canCreateDefaultPublicLink) {
-        listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PUBLIC_LINK") + flagString + tr("Create and copy public link to clipboard"));
-    } else if (publicLinksEnabled) {
-        listener->sendMessage(QStringLiteral("MENU_ITEM:MANAGE_PUBLIC_LINKS") + flagString + tr("Copy public link to clipboard"));
-    }
     
-    listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy private link to clipboard"));
+    listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy public link to clipboard"));
     // Disabled: only providing email option for private links would look odd,
     // and the copy option is more general.
     //listener->sendMessage(QLatin1String("MENU_ITEM:EMAIL_PRIVATE_LINK") + flagString + tr("Send private link by email..."));
