@@ -728,9 +728,9 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    auto fileData = FileData::get(localFile);
-    QString account = fileData.folder->accountState()->account()->credentials()->user();
-    const QString link = QStringLiteral("https://files.fm/%1%2").arg(account, fileData.serverRelativePath);
+    const QString command =  QStringLiteral("get_share_link");
+    const QString link = createLink(localFile, command);
+    Utility::openBrowser(createLink(localFile, command), nullptr);
     copyUrlToClipboard(link);
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
