@@ -46,7 +46,6 @@ public:
     /** Records the status of the sync run
      */
     enum Status {
-        /// Emitted once at start
         None,
 
         /**
@@ -69,6 +68,7 @@ public:
          */
         Done
     };
+    Q_ENUM(Status);
 
     Status status() const;
 
