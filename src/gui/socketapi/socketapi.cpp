@@ -735,16 +735,12 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
     QNetworkReply* reply = m_manager.get(request);
     QObject::connect(reply, &QNetworkReply::finished, [reply]() {
     QString ReplyText = reply->readAll();
-    // qDebug() << ReplyText;
-    // ask doc to parse it
     QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
-    // we know first element in file is object, to try to ask for such
     QJsonObject obj = doc.object();
-    // ask object for value
-    QJsonValue value = obj.value(QString("item_hash"));
+    QJsonValue value = obj.value(QString("status"));
     const QString link = value.toString();
     copyUrlToClipboard(link);
-    reply->deleteLater(); // make sure to clean up
+    reply->deleteLater(); 
   });
     
 }
