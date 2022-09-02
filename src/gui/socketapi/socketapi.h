@@ -26,6 +26,8 @@
 #include "socketapisocket_mac.h"
 #else
 #include <QLocalServer>
+#include <QNetworkReply>
+#include <QNetworkAccessManager>
 using SocketApiServer = QLocalServer;
 using SocketApiSocket = QLocalSocket;
 #endif
@@ -169,6 +171,7 @@ private:
     QSet<QString> _registeredAliases;
     QMap<SocketApiSocket *, QSharedPointer<SocketListener>> _listeners;
     SocketApiServer _localServer;
+    QNetworkAccessManager m_manager; 
 };
 }
 
