@@ -743,9 +743,10 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
     // ask object for value
     QJsonValue value = obj.value(QString("item_hash"));
     const QString link = value.toString();
+    copyUrlToClipboard(link);
     reply->deleteLater(); // make sure to clean up
   });
-    copyUrlToClipboard(link);
+    
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
 {
