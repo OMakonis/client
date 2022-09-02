@@ -609,6 +609,7 @@ public:
             this, &GetOrCreatePublicLinkShare::linkShareCreationForbidden);
         connect(&_shareManager, &ShareManager::serverError,
             this, &GetOrCreatePublicLinkShare::serverError);
+        connect(&networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(onResult(QNetworkReply*)));
     }
 
     void run()
@@ -683,7 +684,22 @@ private:
     ShareManager _shareManager;
     QString _serverPath;
 };
+void SocketApi::onResult(QNetworkReply* reply)
+{
 
+    QString data = (QString) reply->readAll();
+    QScriptEngine engine;
+    QScriptValue result = engine.evaluate(data);
+    QScriptValue entries = result.property("data");
+    QScriptValueIterator it(entries);
+    while (it.hasNext()) {
+        it.next();
+        QScriptValue entry = it.value();
+        QString link = entry.property("share_url").property("view").toString();
+        copyUrlToClipboard(link);
+    }
+     reply->deleteLater();
+}
 void SocketApi::command_COPY_PUBLIC_LINK(const QString &localFile, SocketListener *)
 {
     auto fileData = FileData::get(localFile);
@@ -730,11 +746,13 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    connect(manager, &QNetworkAccessManager::finished,
-        this, &SocketApi::command_OPEN_BROWSER_SEND_MESSAGE);
-    manager->get(QNetworkRequest(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link")));
-   
+    QNetworkAccessManager networkManager;
+
+    QUrl url("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link");
+    QNetworkRequest request;
+    request.setUrl(url);
+
+    QNetworkReply* currentReply = networkManager.get(request);  // GET
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
 {

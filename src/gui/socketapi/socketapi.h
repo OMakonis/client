@@ -146,7 +146,7 @@ private:
 
     // Sends the context menu options relating to sharing to listener
     void sendSharingContextMenuOptions(const FileData &fileData, SocketListener *listener);
-
+    void onResult(QNetworkReply* reply);
     /** Send the list of menu item. (added in version 1.1)
      * argument is a list of files for which the menu should be shown, separated by '\x1e'
      * Reply with  GET_MENU_ITEMS:BEGIN
@@ -171,7 +171,6 @@ private:
     QSet<QString> _registeredAliases;
     QMap<SocketApiSocket *, QSharedPointer<SocketListener>> _listeners;
     SocketApiServer _localServer;
-    QNetworkAccessManager m_manager; 
 };
 }
 
