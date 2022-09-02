@@ -732,8 +732,8 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
 {
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
     connect(manager, &QNetworkAccessManager::finished,
-        this, [reply]() {
-    QString ReplyText = reply->readAll();
+        this, [this]() {
+    QString ReplyText = this->readAll();
     QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
     QJsonObject obj = doc.object();
     QJsonValue value = obj.value(QString("status"));
@@ -741,7 +741,7 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
     Utility::openBrowser(nocopy, nullptr);
     const QString link = value.toString();
     copyUrlToClipboard(link);
-    reply->deleteLater(); 
+    this->deleteLater(); 
   });
 
     manager->get(QNetworkRequest(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link")));
