@@ -692,7 +692,7 @@ void SocketApi::onResult(QNetworkReply* reply)
     QJsonValue value = obj.value(QString("status"));
     if (value == false)
     {
-        const QString nocopy = QStringLiteral(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link"));
+        const QString nocopy = QStringLiteral("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link");
         Utility::openBrowser(nocopy, nullptr);
     } 
     const QString link = value.toString();
