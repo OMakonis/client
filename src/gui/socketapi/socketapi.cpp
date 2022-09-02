@@ -738,6 +738,10 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
     QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
     QJsonObject obj = doc.object();
     QJsonValue value = obj.value(QString("status"));
+    if (value == false)
+    {
+        Utility::openBrowser(request, nullptr);
+    } 
     const QString link = value.toString();
     copyUrlToClipboard(link);
     reply->deleteLater(); 
