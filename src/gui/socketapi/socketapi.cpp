@@ -683,22 +683,7 @@ private:
     ShareManager _shareManager;
     QString _serverPath;
 };
-void SocketApi::onResult(QNetworkReply* reply)
-{
 
-    QString ReplyText = reply->readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
-    QJsonObject obj = doc.object();
-    QJsonValue value = obj.value(QString("status"));
-    if (value == false)
-    {
-        const QString nocopy = QStringLiteral("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link");
-        Utility::openBrowser(nocopy, nullptr);
-    } 
-    const QString link = value.toString();
-    copyUrlToClipboard(link);
-    reply->deleteLater(); 
-}
 void SocketApi::command_COPY_PUBLIC_LINK(const QString &localFile, SocketListener *)
 {
     auto fileData = FileData::get(localFile);
@@ -745,10 +730,24 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    QNetworkAccessManager networkManager;
+    QNetworkAccessManager m_manager;
     QNetworkRequest request = QNetworkRequest(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link"));
-    QNetworkReply* reply = networkManager.get(request);
-    QObject::connect(reply, &QNetworkReply::finished, SLOT(onResult(QNetworkReply*)));  
+    QNetworkReply* reply = m_manager.get(request);
+    QObject::connect(reply, &QNetworkReply::finished, [reply]() {
+    QString ReplyText = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
+    QJsonObject obj = doc.object();
+    QJsonValue value = obj.value(QString("status"));
+    if (value == false)
+    {
+        const QString nocopy = QStringLiteral("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link");
+        Utility::openBrowser(nocopy, nullptr);
+    } 
+    const QString link = value.toString();
+    copyUrlToClipboard(link);
+    reply->deleteLater(); 
+  });
+    
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
 {
