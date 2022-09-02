@@ -730,10 +730,9 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    QNetworkAccessManager m_manager;
-    QNetworkRequest request = QNetworkRequest(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link"));
-    QNetworkReply* reply = m_manager.get(request);
-    QObject::connect(reply, &QNetworkReply::finished, [reply]() {
+    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
+    connect(manager, &QNetworkAccessManager::finished,
+        this, [reply]() {
     QString ReplyText = reply->readAll();
     QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
     QJsonObject obj = doc.object();
@@ -744,7 +743,8 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
     copyUrlToClipboard(link);
     reply->deleteLater(); 
   });
-    
+
+    manager->get(QNetworkRequest(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link")));
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
 {
