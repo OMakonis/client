@@ -742,7 +742,7 @@ void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListen
     QJsonObject obj = doc.object();
     // ask object for value
     QJsonValue value = obj.value(QString("item_hash"));
-    link = value.toString();
+    const QString link = value.toString();
     reply->deleteLater(); // make sure to clean up
   });
     copyUrlToClipboard(link);
