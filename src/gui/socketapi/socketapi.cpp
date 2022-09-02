@@ -52,6 +52,8 @@
 #include <QStringBuilder>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QNetworkReply>
+#include <QNetworkAccessManager>
 
 
 #include <QAction>
@@ -728,9 +730,20 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    const QString command =  QStringLiteral("get_share_link");
-    const QString link = createLink(localFile, command);
-    Utility::openBrowser(createLink(localFile, command), nullptr);
+    QNetworkRequest request = QNetworkRequest(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link"));
+    QNetworkReply* reply = m_manager.get(request);
+    QObject::connect(reply, &QNetworkReply::finished, [reply]() {
+    QString ReplyText = reply->readAll();
+    // qDebug() << ReplyText;
+    // ask doc to parse it
+    QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
+    // we know first element in file is object, to try to ask for such
+    QJsonObject obj = doc.object();
+    // ask object for value
+    QJsonValue value = obj.value(QString("item_hash"));
+    link = value.toString();
+    reply->deleteLater(); // make sure to clean up
+  });
     copyUrlToClipboard(link);
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
