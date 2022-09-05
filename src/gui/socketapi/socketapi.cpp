@@ -37,6 +37,7 @@
 #include "common/asserts.h"
 #include "guiutility.h"
 #include "sharemanager.h"
+#include "getJson.h"
 
 #include <array>
 #include <QBitArray>
@@ -730,21 +731,8 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    connect(manager, &QNetworkAccessManager::finished,
-        this, [this]() {
-    QString ReplyText = this->readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(ReplyText.toUtf8());
-    QJsonObject obj = doc.object();
-    QJsonValue value = obj.value(QString("status"));
-    const QString nocopy = QStringLiteral("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link");
-    Utility::openBrowser(nocopy, nullptr);
-    const QString link = value.toString();
-    copyUrlToClipboard(link);
-    this->deleteLater(); 
-  });
-
-    manager->get(QNetworkRequest(QUrl("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link")));
+    getJson handler;
+    handler.CheckSite("http://qt-project.org");
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
 {
