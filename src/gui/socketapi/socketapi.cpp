@@ -732,7 +732,7 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
     getJson handler;
-    handler.CheckSite("https://failiem.lv/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link");
+    handler.CheckSite("http://hapi.fhir.org/baseDstu3/Patient/4705560?_format=json");
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
 {
