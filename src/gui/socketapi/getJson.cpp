@@ -3,12 +3,12 @@
 
 #include <QDesktopServices>
 #include <QUrl>
+#include <QClipboard>
 
 
 void getJson::replyFinished(QNetworkReply *reply) 
 { 
-    QDesktopServices::openUrl(QUrl("https://qt.io/"));
-    Utility::openBrowser("https://qt.io/", nullptr);
+    QApplication::clipboard()->setText("https://qt.io/");
 }
 
 void getJson::CheckSite(QString url) 
