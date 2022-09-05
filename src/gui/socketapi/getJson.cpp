@@ -1,6 +1,7 @@
 #include "getJson.h"
 #include "guiutility.h"
 
+#include <QApplication>
 #include <QDesktopServices>
 #include <QUrl>
 #include <QClipboard>
