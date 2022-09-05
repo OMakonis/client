@@ -1,6 +1,6 @@
 #include "getJson.h"
-include <QDesktopServices>
-include <QUrl>
+#include <QDesktopServices>
+#include <QUrl>
 
 void getJson::replyFinished(QNetworkReply *reply) 
 { 
