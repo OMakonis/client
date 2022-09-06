@@ -69,7 +69,8 @@ public:
          */
         Done
     };
-
+    Q_ENUM(Status);
+    
     Status status() const;
 
     /**
