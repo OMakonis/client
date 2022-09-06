@@ -308,8 +308,8 @@ void AccountSettings::slotCustomContextMenuRequested(const QPoint &pos)
         }
         menu->addAction(CommonStrings::showInWebBrowser(), [this, path] {
 
-            const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=%2&path=%3")
-                .arg(_accountState->account(), "open", path);          
+            const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=open&path=%2")
+                .arg(_accountState->account(), path);          
             Utility::openBrowser(link, nullptr);    
         });
     }
