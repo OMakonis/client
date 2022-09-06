@@ -71,9 +71,6 @@ public:
     qint64 timeoutMsec() const { return _timer.interval(); }
     bool timedOut() const { return _timedout; }
 
-    void setPriority(QNetworkRequest::Priority priority);
-    QNetworkRequest::Priority priority() const;
-
     /** Returns an error message, if any. */
     QString errorString() const;
 
@@ -199,8 +196,6 @@ private:
     bool _isAuthenticationJob = false;
     int _retryCount = 0;
 
-    QNetworkRequest::Priority _priority = QNetworkRequest::NormalPriority;
-
     friend QDebug(::operator<<)(QDebug debug, const AbstractNetworkJob *job);
 };
 
@@ -242,3 +237,4 @@ QString OWNCLOUDSYNC_EXPORT errorMessage(const QString &baseError, const QByteAr
 QString OWNCLOUDSYNC_EXPORT networkReplyErrorString(const QNetworkReply &reply);
 
 } // namespace OCC
+

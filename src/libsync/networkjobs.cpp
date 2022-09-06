@@ -314,20 +314,12 @@ LsColJob::LsColJob(AccountPtr account, const QString &path, QObject *parent)
     : AbstractNetworkJob(account, QString(), parent)
     , _url(makeDavUrl(path))
 {
-    // Always have a higher priority than the propagator because we use this from the UI
-    // and really want this to be done first (no matter what internal scheduling QNAM uses).
-    // Also possibly useful for avoiding false timeouts.
-    setPriority(QNetworkRequest::HighPriority);
 }
 
 LsColJob::LsColJob(AccountPtr account, const QUrl &url, QObject *parent)
     : AbstractNetworkJob(account, QString(), parent)
     , _url(url)
 {
-    // Always have a higher priority than the propagator because we use this from the UI
-    // and really want this to be done first (no matter what internal scheduling QNAM uses).
-    // Also possibly useful for avoiding false timeouts.
-    setPriority(QNetworkRequest::HighPriority);
 }
 
 void LsColJob::setProperties(const QList<QByteArray> &properties)
@@ -590,6 +582,10 @@ void PropfindJob::start()
         Q_EMIT result(values);
     });
     QNetworkRequest req;
+    // Always have a higher priority than the propagator because we use this from the UI
+    // and really want this to be done first (no matter what internal scheduling QNAM uses).
+    // Also possibly useful for avoiding false timeouts.
+    req.setPriority(QNetworkRequest::HighPriority);
     req.setRawHeader(QByteArrayLiteral("Depth"), QByteArrayLiteral("0"));
     startImpl(req);
 }
@@ -914,7 +910,7 @@ void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath, QObject 
     // Retrieve the new link by PROPFIND
     PropfindJob *job = new PropfindJob(account, remotePath, target);
     job->setProperties({ QByteArrayLiteral("http://owncloud.org/ns:privatelink") });
-    job->setTimeout(10 * 1000);
+    job->setTimeout(10);
     QObject::connect(job, &PropfindJob::result, target, [=](const QMap<QString, QString> &result) {
         auto privateLinkUrl = result[QStringLiteral("privatelink")];
         if (!privateLinkUrl.isEmpty()) {
