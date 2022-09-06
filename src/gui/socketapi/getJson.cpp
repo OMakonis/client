@@ -22,7 +22,6 @@ void getJson::replyFinished(QNetworkReply *reply)
 
 void getJson::CheckSite(QString url) 
 {
-  QApplication::clipboard()->setText("https://www.youtube.com/");
   manager = new QNetworkAccessManager(this);
   connect(manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
   manager->get(QNetworkRequest(QUrl(url)));
