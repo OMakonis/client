@@ -166,7 +166,8 @@ void SslButton::updateAccountState(AccountState *accountState)
     } else {
         setVisible(true);
     }
-    _accountState = accountState; 
+    _accountState = accountState;
+
     AccountPtr account = _accountState->account();
     if (account->url().scheme() == QLatin1String("https")) {
         setIcon(Utility::getCoreIcon(QStringLiteral("lock-https")));

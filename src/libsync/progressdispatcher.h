@@ -46,7 +46,8 @@ public:
     /** Records the status of the sync run
      */
     enum Status {
-        None,
+        /// Emitted once at start
+        Starting,
 
         /**
          * Emitted once without _currentDiscoveredFolder when it starts,
@@ -68,7 +69,6 @@ public:
          */
         Done
     };
-    Q_ENUM(Status);
 
     Status status() const;
 

@@ -37,7 +37,6 @@
 #include "common/asserts.h"
 #include "guiutility.h"
 #include "sharemanager.h"
-#include "getJson.h"
 
 #include <array>
 #include <QBitArray>
@@ -53,8 +52,6 @@
 #include <QStringBuilder>
 #include <QMessageBox>
 #include <QFileDialog>
-#include <QNetworkReply>
-#include <QNetworkAccessManager>
 
 
 #include <QAction>
@@ -731,8 +728,10 @@ QString SocketApi::createLink(const QString &localFile, const QString command)
 
 void SocketApi::command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *)
 {
-    getJson handler;
-    handler.CheckSite("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=demo&path=/test_folder1/test_folder2/&action=get_share_link");
+    auto fileData = FileData::get(localFile);
+    QString account = fileData.folder->accountState()->account()->credentials()->user();
+    const QString link = QStringLiteral("https://files.fm/%1%2").arg(account, fileData.serverRelativePath);
+    copyUrlToClipboard(link);
 }
 void SocketApi::command_OPEN_BROWSER_SEND_MESSAGE(const QString &localFile, SocketListener *listener)
 {
@@ -983,6 +982,7 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
     // Is is possible to create a public link without user choices?
     bool canCreateDefaultPublicLink = publicLinksEnabled
         && !capabilities.sharePublicLinkEnforcePasswordForReadOnly();
+    
     //listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy public link to clipboard"));
     listener->sendMessage(QStringLiteral("MENU_ITEM:SHARE") + flagString + tr("Share"));
     listener->sendMessage(QLatin1String("MENU_ITEM:OPEN_BROWSER_SEND_MESSAGE") + flagString + tr("Send message"));
