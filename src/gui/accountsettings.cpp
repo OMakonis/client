@@ -258,7 +258,6 @@ void AccountSettings::slotCustomContextMenuRequested(const QPoint &pos)
         return;
     }
 
-
     // Only allow removal if the item isn't in "ready" state.
     if (classification == FolderStatusModel::RootFolder && !_model->data(index, FolderStatusDelegate::IsReady).toBool() && !_model->folder(index)->isDeployed()) {
         QMenu *menu = new QMenu(tv);
@@ -361,7 +360,7 @@ void AccountSettings::slotCustomContextMenuRequested(const QPoint &pos)
             && !folder->virtualFilesEnabled() && FolderMan::instance()->checkVfsAvailability(folder->path())) {
             const auto mode = bestAvailableVfsMode();
             if (mode == Vfs::WindowsCfApi || (Theme::instance()->enableExperimentalFeatures() && mode != Vfs::Off)) {
-                ac = menu->addAction(tr("Enable virtual file support%1...").arg(mode == Vfs::WindowsCfApi ? QString() : tr("")));
+                ac = menu->addAction(tr("Enable virtual file support%1...").arg(mode == Vfs::WindowsCfApi ? QString() : tr(" (experimental)")));
                 connect(ac, &QAction::triggered, this, &AccountSettings::slotEnableVfsCurrentFolder);
             }
         }
