@@ -38,7 +38,7 @@ namespace OCC {
 
 // ==============================================================================
 
-const std::chrono::hours defaultExpireDuration(4);
+const std::chrono::hours defaultExpireDuration(72);
 
 LogBrowser::LogBrowser(QWidget *parent)
     : QDialog(parent)

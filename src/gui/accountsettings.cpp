@@ -306,9 +306,10 @@ void AccountSettings::slotCustomContextMenuRequested(const QPoint &pos)
             path += info->_path;
         }
         menu->addAction(CommonStrings::showInWebBrowser(), [this, path] {
-            fetchPrivateLinkUrl(_accountState->account(), path, this, [](const QString &url) {
-                Utility::openBrowser(url, nullptr);
-            });
+            QString account = _accountState->account()->credentials()->user();
+            const QString link = QStringLiteral("https://files.fm/server_scripts/filesfm_sync_contextmenu_action.php?username=%1&action=open&path=%2")
+                .arg(account, path);          
+            Utility::openBrowser(link, nullptr);
         });
     }
 
@@ -360,7 +361,7 @@ void AccountSettings::slotCustomContextMenuRequested(const QPoint &pos)
             && !folder->virtualFilesEnabled() && FolderMan::instance()->checkVfsAvailability(folder->path())) {
             const auto mode = bestAvailableVfsMode();
             if (mode == Vfs::WindowsCfApi || (Theme::instance()->enableExperimentalFeatures() && mode != Vfs::Off)) {
-                ac = menu->addAction(tr("Enable virtual file support%1...").arg(mode == Vfs::WindowsCfApi ? QString() : tr(" (experimental)")));
+                ac = menu->addAction(tr("Enable virtual file support%1...").arg(mode == Vfs::WindowsCfApi ? QString() : tr("")));
                 connect(ac, &QAction::triggered, this, &AccountSettings::slotEnableVfsCurrentFolder);
             }
         }
