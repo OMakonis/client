@@ -48,8 +48,7 @@ GeneralSettings::GeneralSettings(QWidget *parent)
     , _currentlyLoading(false)
 {
     _ui->setupUi(this);
-    _ui->crashreporterCheckBox->setVisible(false);
-    _ui->autostartCheckBox->setChecked(true);
+
     connect(_ui->desktopNotificationsCheckBox, &QAbstractButton::toggled,
         this, &GeneralSettings::slotToggleOptionalDesktopNotifications);
 #ifdef Q_OS_WIN
@@ -85,6 +84,8 @@ GeneralSettings::GeneralSettings(QWidget *parent)
     });
 
 #ifndef WITH_CRASHREPORTER
+    _ui->crashreporterCheckBox->setVisible(false);
+    
 #endif
 
     // Hide on non-Windows, or WindowsVersion < 10.
@@ -101,7 +102,8 @@ GeneralSettings::GeneralSettings(QWidget *parent)
     // OEM themes are not obliged to ship mono icons, so there
     // is no point in offering an option
     _ui->monoIconsCheckBox->hide();
-
+    _ui->autostartCheckBox->setChecked(true);
+    _ui->monoIconsCheckBox->setChecked(true);
     connect(_ui->ignoredFilesButton, &QAbstractButton::clicked, this, &GeneralSettings::slotIgnoreFilesEditor);
     connect(_ui->logSettingsButton, &QPushButton::clicked, this, [] {
         // only access occApp after things are set up
@@ -143,7 +145,7 @@ void GeneralSettings::loadMiscSettings()
 {
     QScopedValueRollback<bool> scope(_currentlyLoading, true);
     ConfigFile cfgFile;
-    _ui->monoIconsCheckBox->setChecked(cfgFile.monoIcons());
+    _ui->monoIconsCheckBox->setChecked(true);
     _ui->desktopNotificationsCheckBox->setChecked(cfgFile.optionalDesktopNotifications());
     _ui->showInExplorerNavigationPaneCheckBox->setChecked(cfgFile.showInExplorerNavigationPane());
     _ui->crashreporterCheckBox->setChecked(cfgFile.crashReporter());
