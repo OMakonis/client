@@ -101,7 +101,7 @@ GeneralSettings::GeneralSettings(QWidget *parent)
 
     // OEM themes are not obliged to ship mono icons, so there
     // is no point in offering an option
-    _ui->monoIconsCheckBox->hide();
+    
     _ui->autostartCheckBox->setChecked(true);
     _ui->monoIconsCheckBox->setChecked(true);
     connect(_ui->ignoredFilesButton, &QAbstractButton::clicked, this, &GeneralSettings::slotIgnoreFilesEditor);
