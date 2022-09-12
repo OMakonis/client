@@ -103,6 +103,7 @@ GeneralSettings::GeneralSettings(QWidget *parent)
     //_ui->monoIconsCheckBox->hide();
     _ui->autostartCheckBox->setChecked(true);
     _ui->monoIconsCheckBox->setChecked(true);
+    _ui->monoIconsCheckBox->hide();
     connect(_ui->ignoredFilesButton, &QAbstractButton::clicked, this, &GeneralSettings::slotIgnoreFilesEditor);
     connect(_ui->logSettingsButton, &QPushButton::clicked, this, [] {
         // only access occApp after things are set up
