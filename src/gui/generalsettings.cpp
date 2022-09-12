@@ -103,7 +103,7 @@ GeneralSettings::GeneralSettings(QWidget *parent)
     // is no point in offering an option
     //_ui->monoIconsCheckBox->hide();
     _ui->autostartCheckBox->setChecked(true);
-    _ui->monoIconsCheckBox->toggle();
+    Theme::instance()->setSystrayUseMonoIcons(true);
     connect(_ui->ignoredFilesButton, &QAbstractButton::clicked, this, &GeneralSettings::slotIgnoreFilesEditor);
     connect(_ui->logSettingsButton, &QPushButton::clicked, this, [] {
         // only access occApp after things are set up
