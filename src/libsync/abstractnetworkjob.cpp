@@ -150,6 +150,11 @@ void AbstractNetworkJob::sendRequest(const QByteArray &verb,
 {
     _verb = verb;
     _request = req;
+<<<<<<< HEAD
+=======
+    _request.setUrl(url);
+    _request.setPriority(_priority);
+>>>>>>> refs/remotes/origin/master
     _requestBody = requestBody;
     Q_ASSERT(_request.url().isEmpty() || _request.url() == url());
     Q_ASSERT(_request.transferTimeout() == 0 || _request.transferTimeout() == duration_cast<milliseconds>(_timeout).count());
@@ -371,6 +376,16 @@ void AbstractNetworkJob::abort()
     } else {
         deleteLater();
     }
+}
+
+void AbstractNetworkJob::setPriority(QNetworkRequest::Priority priority)
+{
+    _priority = priority;
+}
+
+QNetworkRequest::Priority AbstractNetworkJob::priority() const
+{
+    return _priority;
 }
 
 } // namespace OCC

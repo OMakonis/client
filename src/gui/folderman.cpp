@@ -164,7 +164,7 @@ FolderMan::FolderMan(QObject *parent)
     connect(&_startScheduledSyncTimer, &QTimer::timeout,
         this, &FolderMan::slotStartScheduledFolderSync);
 
-    _timeScheduler.setInterval(5000);
+    _timeScheduler.setInterval(5s);
     _timeScheduler.setSingleShot(false);
     connect(&_timeScheduler, &QTimer::timeout,
         this, &FolderMan::slotScheduleFolderByTime);
@@ -387,8 +387,31 @@ void FolderMan::setupFoldersHelper(QSettings &settings, AccountStatePtr account,
             // save possible changes from the migration
             f->saveToSettings();
 
+<<<<<<< HEAD
             scheduleFolder(f);
             emit folderSyncStateChange(f);
+=======
+            auto vfs = createVfsFromPlugin(folderDefinition.virtualFilesMode);
+            if (!vfs) {
+                // TODO: Must do better error handling
+                qFatal("Could not load plugin");
+            }
+
+            Folder *f = addFolderInternal(std::move(folderDefinition), account.data(), std::move(vfs));
+            if (f) {
+                // Migration: Mark folders that shall be saved in a backwards-compatible way
+                if (backwardsCompatible)
+                    f->setSaveBackwardsCompatible(true);
+                if (foldersWithPlaceholders)
+                    f->setSaveInFoldersWithPlaceholders();
+
+                // save possible changes from the migration
+                f->saveToSettings();
+
+                scheduleFolder(f);
+                emit folderSyncStateChange(f);
+            }
+>>>>>>> refs/remotes/origin/master
         }
         settings.endGroup();
     }
@@ -1059,21 +1082,18 @@ void FolderMan::removeFolder(Folder *f)
     f->removeFromSettings();
 
     unloadFolder(f);
-    if (currentlyRunning) {
-        // We want to schedule the next folder once this is done
-        connect(f, &Folder::syncFinished,
-            this, &FolderMan::slotFolderSyncFinished);
-        // Let the folder delete itself when done.
-        connect(f, &Folder::syncFinished, f, &QObject::deleteLater);
-    } else {
-        f->deleteLater();
-    }
+    f->deleteLater();
 
 #ifdef Q_OS_WIN
     _navigationPaneHelper.scheduleUpdateCloudStorageRegistry();
 #endif
     Q_EMIT folderRemoved(f);
+<<<<<<< HEAD
     emit folderListChanged();
+=======
+    emit folderListChanged(_folderMap);
+    QTimer::singleShot(0, this, &FolderMan::startScheduledSyncSoon);
+>>>>>>> refs/remotes/origin/master
 }
 
 QString FolderMan::getBackupName(QString fullPathName) const

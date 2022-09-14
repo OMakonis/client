@@ -84,8 +84,30 @@ GETFileJob::GETFileJob(AccountPtr account, const QUrl &url, const QString &path,
     , _resumeStart(resumeStart)
     , _hasEmittedFinishedSignal(false)
 {
+    // Long downloads must not block non-propagation jobs.
+    setPriority(QNetworkRequest::LowPriority);
 }
 
+<<<<<<< HEAD
+=======
+GETFileJob::GETFileJob(AccountPtr account, const QUrl &url, QIODevice *device,
+    const QMap<QByteArray, QByteArray> &headers, const QByteArray &expectedEtagForResume,
+    qint64 resumeStart, QObject *parent)
+    : GETJob(account, url.toString(QUrl::FullyEncoded), parent)
+    , _device(device)
+    , _headers(headers)
+    , _expectedEtagForResume(expectedEtagForResume)
+    , _expectedContentLength(-1)
+    , _contentLength(-1)
+    , _resumeStart(resumeStart)
+    , _directDownloadUrl(url)
+    , _hasEmittedFinishedSignal(false)
+{
+    // Long downloads must not block non-propagation jobs.
+    setPriority(QNetworkRequest::LowPriority);
+}
+
+>>>>>>> refs/remotes/origin/master
 void GETFileJob::start()
 {
     if (_resumeStart > 0) {
@@ -99,9 +121,18 @@ void GETFileJob::start()
         req.setRawHeader(it.key(), it.value());
     }
 
+<<<<<<< HEAD
     req.setPriority(QNetworkRequest::LowPriority); // Long downloads must not block non-propagation jobs.
 
     sendRequest("GET", req);
+=======
+    if (_directDownloadUrl.isEmpty()) {
+        sendRequest("GET", makeDavUrl(path()), req);
+    } else {
+        // Use direct URL
+        sendRequest("GET", _directDownloadUrl, req);
+    }
+>>>>>>> refs/remotes/origin/master
 
     qCDebug(lcGetJob) << _bandwidthManager << _bandwidthChoked << _bandwidthLimited;
     if (_bandwidthManager) {

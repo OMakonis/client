@@ -180,12 +180,6 @@ public:
      */
     virtual bool socketApiPinStateActionsShown() const = 0;
 
-    /** Return true when download of a file's data is currently ongoing.
-     *
-     * See also the beginHydrating() and doneHydrating() signals.
-     */
-    virtual bool isHydrating() const = 0;
-
     /// Create a new dehydrated placeholder. Called from PropagateDownload.
     virtual OC_REQUIRED_RESULT Result<void, QString> createPlaceholder(const SyncFileItem &item) = 0;
 
@@ -249,10 +243,6 @@ public slots:
     virtual void fileStatusChanged(const QString &systemFileName, SyncFileStatus fileStatus) = 0;
 
 signals:
-    /// Emitted when a user-initiated hydration starts
-    void beginHydrating();
-    /// Emitted when the hydration ends
-    void doneHydrating();
     /// start complete
     void started();
 
@@ -289,6 +279,45 @@ protected:
     friend class OwncloudPropagator;
 };
 
+<<<<<<< HEAD
+=======
+/// Implementation of Vfs for Vfs::Off mode - does nothing
+class OCSYNC_EXPORT VfsOff : public Vfs
+{
+    Q_OBJECT
+
+public:
+    VfsOff(QObject* parent = nullptr);
+    ~VfsOff() override;
+
+    Mode mode() const override { return Vfs::Off; }
+
+    QString fileSuffix() const override { return QString(); }
+
+    void stop() override {}
+    void unregisterFolder() override {}
+
+    bool socketApiPinStateActionsShown() const override { return false; }
+
+    Result<void, QString> createPlaceholder(const SyncFileItem &) override { return {}; }
+
+    bool needsMetadataUpdate(const SyncFileItem &) override { return false; }
+    bool isDehydratedPlaceholder(const QString &) override { return false; }
+    bool statTypeVirtualFile(csync_file_stat_t *, void *) override { return false; }
+
+    bool setPinState(const QString &, PinState) override { return true; }
+    Optional<PinState> pinState(const QString &) override { return PinState::AlwaysLocal; }
+    AvailabilityResult availability(const QString &) override { return VfsItemAvailability::AlwaysLocal; }
+
+public slots:
+    void fileStatusChanged(const QString &, SyncFileStatus) override {}
+
+protected:
+    Result<ConvertToPlaceholderResult, QString> updateMetadata(const SyncFileItem &, const QString &, const QString &) override { return { ConvertToPlaceholderResult::Ok }; }
+    void startImpl(const VfsSetupParams &) override { Q_EMIT started(); }
+};
+
+>>>>>>> refs/remotes/origin/master
 /// Check whether the plugin for the mode is available.
 OCSYNC_EXPORT bool isVfsPluginAvailable(Vfs::Mode mode);
 

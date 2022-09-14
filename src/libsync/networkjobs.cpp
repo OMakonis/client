@@ -297,9 +297,29 @@ bool LsColXMLParser::parse(const QByteArray &xml, QHash<QString, qint64> *sizes,
 
 /*********************************************************************************************/
 
+<<<<<<< HEAD
 LsColJob::LsColJob(AccountPtr account, const QUrl &url, const QString &path, QObject *parent)
     : AbstractNetworkJob(account, url, path, parent)
+=======
+LsColJob::LsColJob(AccountPtr account, const QString &path, QObject *parent)
+    : AbstractNetworkJob(account, QString(), parent)
+    , _url(makeDavUrl(path))
 {
+    // Always have a higher priority than the propagator because we use this from the UI
+    // and really want this to be done first (no matter what internal scheduling QNAM uses).
+    // Also possibly useful for avoiding false timeouts.
+    setPriority(QNetworkRequest::HighPriority);
+}
+
+LsColJob::LsColJob(AccountPtr account, const QUrl &url, QObject *parent)
+    : AbstractNetworkJob(account, QString(), parent)
+    , _url(url)
+>>>>>>> refs/remotes/origin/master
+{
+    // Always have a higher priority than the propagator because we use this from the UI
+    // and really want this to be done first (no matter what internal scheduling QNAM uses).
+    // Also possibly useful for avoiding false timeouts.
+    setPriority(QNetworkRequest::HighPriority);
 }
 
 void LsColJob::setProperties(const QList<QByteArray> &properties)
@@ -406,10 +426,6 @@ void PropfindJob::start()
         }
     });
     QNetworkRequest req;
-    // Always have a higher priority than the propagator because we use this from the UI
-    // and really want this to be done first (no matter what internal scheduling QNAM uses).
-    // Also possibly useful for avoiding false timeouts.
-    req.setPriority(QNetworkRequest::HighPriority);
     req.setRawHeader(QByteArrayLiteral("Depth"), QByteArrayLiteral("0"));
     startImpl(req);
 }

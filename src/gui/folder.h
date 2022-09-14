@@ -96,6 +96,7 @@ public:
     /// journalPath relative to localPath.
     QString absoluteJournalPath() const;
 
+<<<<<<< HEAD
     QString localPath() const
     {
         return _localPath;
@@ -127,6 +128,16 @@ private:
     QString _targetPath;
 
     friend class FolderMan;
+=======
+    /**
+     * The folder is deployed by an admin
+     * We will hide the remove option and the disable/enable vfs option.
+     */
+    bool isDeployed() const;
+
+private:
+    bool _deployed = false;
+>>>>>>> refs/remotes/origin/master
 };
 
 /**
@@ -331,8 +342,6 @@ public:
     bool virtualFilesEnabled() const;
     void setVirtualFilesEnabled(bool enabled);
 
-    void setRootPinState(PinState state);
-
     /** Whether user desires a switch that couldn't be executed yet, see member */
     bool isVfsOnOffSwitchPending() const { return _vfsOnOffPending; }
     void setVfsOnOffSwitchPending(bool pending) { _vfsOnOffPending = pending; }
@@ -341,12 +350,19 @@ public:
     bool supportsSelectiveSync() const;
 
     /**
+<<<<<<< HEAD
      * Whether to register the parent folder of our sync root in the explorer
      * The default behaviour is to register alls spaces in a common dir in the home folder
      * in that case we only display that common dir in the Windows side bar.
      * With the legacy behaviour we only have one dir which we will register with Windows
      */
     bool groupInSidebar() const;
+=======
+     * The folder is deployed by an admin
+     * We will hide the remove option and the disable/enable vfs option.
+     */
+    bool isDeployed() const;
+>>>>>>> refs/remotes/origin/master
 
 signals:
     void syncStateChange();
@@ -462,17 +478,6 @@ private slots:
 
     /** Warn users about an unreliable folder watcher */
     void slotWatcherUnreliable(const QString &message);
-
-    /** Aborts any running sync and blocks it until hydration is finished.
-     *
-     * Hydration circumvents the regular SyncEngine and both mustn't be running
-     * at the same time.
-     */
-    void slotHydrationStarts();
-
-    /** Unblocks normal sync operation */
-    void slotHydrationDone();
-
 private:
     void connectSyncRoot();
 

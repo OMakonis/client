@@ -47,8 +47,13 @@ public:
 
         AddButton, // 1 = enabled; 2 = disabled
         FolderSyncText,
+<<<<<<< HEAD
         IsReady, // boolean
         IsUsingSpaces // boolean
+=======
+
+        IsReady // boolean
+>>>>>>> refs/remotes/origin/master
     };
     void paint(QPainter *, const QStyleOptionViewItem &, const QModelIndex &) const override;
     QSize sizeHint(const QStyleOptionViewItem &, const QModelIndex &) const override;

@@ -63,13 +63,27 @@ static bool fileIsStillChanging(const SyncFileItem &item)
         && msSinceMod > -10000;
 }
 
+<<<<<<< HEAD
 PUTFileJob::PUTFileJob(AccountPtr account, const QUrl &url, const QString &path, std::unique_ptr<QIODevice> device, const QMap<QByteArray, QByteArray> &headers, int chunk, QObject *parent)
     : AbstractNetworkJob(account, url, path, parent)
+=======
+PUTFileJob::PUTFileJob(AccountPtr account, const QString &path, std::unique_ptr<QIODevice> device, const QMap<QByteArray, QByteArray> &headers, int chunk, QObject *parent)
+    : PUTFileJob(account, Utility::concatUrlPath(account->davUrl(), path), std::move(device), headers, chunk, parent)
+{
+    // Long uploads must not block non-propagation jobs.
+    setPriority(QNetworkRequest::LowPriority);
+}
+
+PUTFileJob::PUTFileJob(AccountPtr account, const QUrl &url, std::unique_ptr<QIODevice> device, const QMap<QByteArray, QByteArray> &headers, int chunk, QObject *parent)
+    : AbstractNetworkJob(account, QString(), parent)
+>>>>>>> refs/remotes/origin/master
     , _device(device.release())
     , _headers(headers)
     , _chunk(chunk)
 {
     _device->setParent(this);
+    // Long uploads must not block non-propagation jobs.
+    setPriority(QNetworkRequest::LowPriority);
 }
 
 PUTFileJob::~PUTFileJob()
@@ -82,10 +96,16 @@ void PUTFileJob::start()
     for (auto it = _headers.cbegin(); it != _headers.cend(); ++it) {
         req.setRawHeader(it.key(), it.value());
     }
+<<<<<<< HEAD
 
     req.setPriority(QNetworkRequest::LowPriority); // Long uploads must not block non-propagation jobs.
 
     sendRequest("PUT", req, _device);
+=======
+    sendRequest("PUT", _url, req, _device);
+
+    connect(this, &AbstractNetworkJob::networkActivity, account().data(), &Account::propagatorNetworkActivity);
+>>>>>>> refs/remotes/origin/master
     _requestTimer.start();
     AbstractNetworkJob::start();
 }

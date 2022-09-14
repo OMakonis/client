@@ -3,11 +3,16 @@ Changelog for ownCloud Desktop Client [unreleased] (UNRELEASED)
 The following sections list the changes in ownCloud Desktop Client unreleased relevant to
 ownCloud admins and users.
 
+<<<<<<< HEAD
 [unreleased]: https://github.com/owncloud/client/compare/v2.10.1...master
+=======
+[unreleased]: https://github.com/owncloud/client/compare/v2.11.0...master
+>>>>>>> refs/remotes/origin/master
 
 Summary
 -------
 
+<<<<<<< HEAD
 * Bugfix - Add request time and other missing data to .owncloudsync.log: [#7348](https://github.com/owncloud/client/issues/7348)
 * Bugfix - Fix copy url location for private links: [#9048](https://github.com/owncloud/client/issues/9048)
 * Bugfix - Fix status of files uploaded with TUS: [#9472](https://github.com/owncloud/client/pull/9472)
@@ -24,10 +29,14 @@ Summary
 * Enhancement - Remove use of legacy DAV endpoint: [#9538](https://github.com/owncloud/client/pull/9538)
 * Enhancement - Support for OCIS Spaces: [#9154](https://github.com/owncloud/client/pull/9154)
 * Enhancement - Set Windows VFS placeholders readonly if needed: [#9598](https://github.com/owncloud/client/issues/9598)
+=======
+* Bugfix - Fix configuration of selective sync from account settings: [#10058](https://github.com/owncloud/client/pull/10058)
+>>>>>>> refs/remotes/origin/master
 
 Details
 -------
 
+<<<<<<< HEAD
 * Bugfix - Add request time and other missing data to .owncloudsync.log: [#7348](https://github.com/owncloud/client/issues/7348)
 
    Some parameters were missing for some operations. This fix makes the log more complete and more
@@ -46,6 +55,47 @@ Details
    Setting the upload status of files uploaded with TUS failed as we were still using the file.
 
    https://github.com/owncloud/client/pull/9472
+=======
+* Bugfix - Fix configuration of selective sync from account settings: [#10058](https://github.com/owncloud/client/pull/10058)
+
+   We fixed a bug that prevented the directory tree in the account settings window from being
+   expanded beyond the root directory level. The problem was introduced in 8d0dd36d2.
+
+   https://github.com/owncloud/client/pull/10058
+   https://github.com/owncloud/client/pull/10065
+
+Changelog for ownCloud Desktop Client [2.11.0] (2022-08-18)
+=======================================
+The following sections list the changes in ownCloud Desktop Client 2.11.0 relevant to
+ownCloud admins and users.
+
+[2.11.0]: https://github.com/owncloud/client/compare/v2.10.1...v2.11.0
+
+Summary
+-------
+
+* Bugfix - Compare usernames case insensitive: [#5174](https://github.com/owncloud/enterprise/issues/5174)
+* Bugfix - Use UTF-8 for .owncloudsync.log: [#9571](https://github.com/owncloud/client/pull/9571)
+* Bugfix - Crash when interacting with a folder in an error state: [#9600](https://github.com/owncloud/client/issues/9600)
+* Bugfix - Database was recreated after its removal: [#9791](https://github.com/owncloud/client/issues/9791)
+* Bugfix - We fixed a potential crash: [#9864](https://github.com/owncloud/client/issues/9864)
+* Bugfix - Windows VFS: Files in an existing folder are dehydrated: [#9966](https://github.com/owncloud/client/pull/9966)
+* Bugfix - Run next scheduled sync after a folder was removed: [#9969](https://github.com/owncloud/client/issues/9969)
+* Bugfix - Windows VFS: Keep file attributes and pin state: [#34](https://github.com/owncloud/client-desktop-vfs-win/pull/34)
+* Enhancement - Throttle the UI updates during sync: [#9832](https://github.com/owncloud/client/issues/9832)
+* Enhancement - Run vfs downloads with a high priority: [#9836](https://github.com/owncloud/client/pull/9836)
+* Enhancement - Don't abort sync if a user requests a file: [#9956](https://github.com/owncloud/client/pull/9956)
+
+Details
+-------
+
+* Bugfix - Compare usernames case insensitive: [#5174](https://github.com/owncloud/enterprise/issues/5174)
+
+   We fixed a bug where the user name was compared with the name provided by the server in a case
+   sensitive way.
+
+   https://github.com/owncloud/enterprise/issues/5174
+>>>>>>> refs/remotes/origin/master
 
 * Bugfix - Use UTF-8 for .owncloudsync.log: [#9571](https://github.com/owncloud/client/pull/9571)
 
@@ -60,6 +110,7 @@ Details
 
    https://github.com/owncloud/client/issues/9600
 
+<<<<<<< HEAD
 * Change - Make sharedialog preview be more resilient: [#8938](https://github.com/owncloud/client/issues/8938)
 
    We no longer enforce png thumbnails. We no longer replace the file icon if the thumbnail is
@@ -134,6 +185,63 @@ Details
 
    https://github.com/owncloud/client/issues/9598
    https://github.com/owncloud/client-desktop-vfs-win/issues/24
+=======
+* Bugfix - Database was recreated after its removal: [#9791](https://github.com/owncloud/client/issues/9791)
+
+   We fixed a bug whre the database was recreated during the removal of a sync folder connection.
+
+   https://github.com/owncloud/client/issues/9791
+
+* Bugfix - We fixed a potential crash: [#9864](https://github.com/owncloud/client/issues/9864)
+
+   https://github.com/owncloud/client/issues/9864
+
+* Bugfix - Windows VFS: Files in an existing folder are dehydrated: [#9966](https://github.com/owncloud/client/pull/9966)
+
+   We fixed a bug, when a user selects an existing folder as sync root we previously dehydrated all
+   existing files.
+
+   https://github.com/owncloud/client/pull/9966
+
+* Bugfix - Run next scheduled sync after a folder was removed: [#9969](https://github.com/owncloud/client/issues/9969)
+
+   We fixed a bug where we did not start another sync when a folder that was currently syncing was
+   removed.
+
+   https://github.com/owncloud/client/issues/9969
+
+* Bugfix - Windows VFS: Keep file attributes and pin state: [#34](https://github.com/owncloud/client-desktop-vfs-win/pull/34)
+
+   When a user selected "Always keep on this device" on a cloud only file, we lost that information.
+   "Always keep on this device" only worked on already present files.
+
+   https://github.com/owncloud/client-desktop-vfs-win/pull/34
+
+* Enhancement - Throttle the UI updates during sync: [#9832](https://github.com/owncloud/client/issues/9832)
+
+   We reduced the number of UI updates during the sync, especially with Windows vfs files this
+   should improve the performance by a lot.
+
+   https://github.com/owncloud/client/issues/9832
+   https://github.com/owncloud/client/pull/9863
+
+* Enhancement - Run vfs downloads with a high priority: [#9836](https://github.com/owncloud/client/pull/9836)
+
+   This should reduce the probability for timeouts when downloading vfs files in the Windows
+   explorer.
+
+   https://github.com/owncloud/client/issues/9832
+   https://github.com/owncloud/client/pull/9836
+
+* Enhancement - Don't abort sync if a user requests a file: [#9956](https://github.com/owncloud/client/pull/9956)
+
+   Previously we aborted any running sync if a user requested a file that was not yet available
+   locally. This was done to ensure the user does not need to wait for the current sync to finish.
+   However in todays code both actions the download and the sync can run in parallel.
+
+   https://github.com/owncloud/client/issues/9832
+   https://github.com/owncloud/client/pull/9956
+>>>>>>> refs/remotes/origin/master
 
 Changelog for ownCloud Desktop Client [2.10.1] (2022-04-05)
 =======================================
