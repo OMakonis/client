@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-set( MIRALL_VERSION_MAJOR 3 )
-set( MIRALL_VERSION_MINOR 0 )
-set( MIRALL_VERSION_PATCH 0 )
-=======
 set( MIRALL_VERSION_MAJOR 2 )
 set( MIRALL_VERSION_MINOR 11 )
 set( MIRALL_VERSION_PATCH 1 )
->>>>>>> refs/remotes/origin/master
 set( MIRALL_VERSION_YEAR  2022 )
 set( MIRALL_SOVERSION 0 )
 
