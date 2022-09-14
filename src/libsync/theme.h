@@ -123,6 +123,7 @@ public:
 #endif
 
     virtual QString statusHeaderText(SyncResult::Status) const;
+    virtual QString version() const;
 
     /**
      * Characteristics: bool if more than one sync folder is allowed

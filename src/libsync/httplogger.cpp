@@ -48,9 +48,6 @@ void logHttp(const QByteArray &verb, const QString &url, const QByteArray &id, c
     stream << verb;
     if (reply) {
         stream << " " << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        if (reply->error() != QNetworkReply::NoError) {
-            stream << " (Error: " << reply->errorString() << ")";
-        }
     }
     stream << " " << url << " Header: { ";
     for (const auto &it : header) {

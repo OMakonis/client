@@ -15,10 +15,9 @@
 #ifndef OWNCLOUDGUI_H
 #define OWNCLOUDGUI_H
 
+#include "systray.h"
 #include "connectionvalidator.h"
 #include "progressdispatcher.h"
-#include "setupwizardcontroller.h"
-#include "systray.h"
 
 #include <QObject>
 #include <QPointer>
@@ -81,9 +80,9 @@ public slots:
     void slotComputeOverallSyncStatus();
     void slotShowTrayMessage(const QString &title, const QString &msg, const QIcon &icon = {});
     void slotShowOptionalTrayMessage(const QString &title, const QString &msg, const QIcon &icon = {});
-    void slotFolderOpenAction(Folder *f);
+    void slotFolderOpenAction(const QString &alias);
     void slotRebuildRecentMenus();
-    void slotUpdateProgress(Folder *folder, const ProgressInfo &progress);
+    void slotUpdateProgress(const QString &folder, const ProgressInfo &progress);
     void slotShowGuiMessage(const QString &title, const QString &message);
     void slotFoldersChanged();
     void slotShowSettings();
@@ -160,9 +159,7 @@ private:
 
     QList<QAction *> _recentItemsActions;
     Application *_app;
-
-    // keeping a pointer on those dialogs allows us to make sure they will be shown only once
-    QPointer<Wizard::SetupWizardController> _wizardController;
+    QPointer<OwncloudSetupWizard> _wizard;
     QPointer<AboutDialog> _aboutDialog;
 };
 

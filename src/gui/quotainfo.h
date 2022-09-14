@@ -21,9 +21,8 @@
 #include <QTimer>
 #include <QDateTime>
 
-#include "accountstate.h"
-
 namespace OCC {
+class AccountState;
 class PropfindJob;
 
 /**
@@ -48,7 +47,7 @@ class QuotaInfo : public QObject
 {
     Q_OBJECT
 public:
-    explicit QuotaInfo(AccountStatePtr accountState, QObject *parent = nullptr);
+    explicit QuotaInfo(OCC::AccountState *accountState, QObject *parent = nullptr);
 
     qint64 lastQuotaTotalBytes() const { return _lastQuotaTotalBytes; }
     qint64 lastQuotaUsedBytes() const { return _lastQuotaUsedBytes; }
@@ -77,7 +76,7 @@ private:
     /// Returns the folder that quota shall be retrieved for
     QString quotaBaseFolder() const;
 
-    AccountStatePtr _accountState;
+    QPointer<AccountState> _accountState;
     qint64 _lastQuotaTotalBytes;
     qint64 _lastQuotaUsedBytes;
     QTimer _jobRestartTimer;

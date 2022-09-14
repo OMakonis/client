@@ -27,8 +27,13 @@
 class QNetworkReply;
 class QAuthenticator;
 
+namespace QKeychain {
+class Job;
+class WritePasswordJob;
+class ReadPasswordJob;
+}
+
 namespace OCC {
-class OAuth;
 
 /*
    The authentication system is this way because of Shibboleth.
@@ -54,7 +59,7 @@ public:
     explicit HttpCredentials(DetermineAuthTypeJob::AuthType authType, const QString &user, const QString &password);
 
     QString authType() const override;
-    AccessManager *createAM() const override;
+    QNetworkAccessManager *createQNAM() const override;
     bool ready() const override;
     void fetchFromKeychain() override;
     bool stillValid(QNetworkReply *reply) override;
@@ -91,7 +96,7 @@ protected:
 
     QString _fetchErrorString;
     bool _ready = false;
-    QPointer<OAuth> _oAuthJob;
+    bool _isRenewingOAuthToken = false;
     bool _retryOnKeyChainError = true; // true if we haven't done yet any reading from keychain
 
     DetermineAuthTypeJob::AuthType _authType = DetermineAuthTypeJob::AuthType::Unknown;

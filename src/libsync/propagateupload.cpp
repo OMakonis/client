@@ -35,8 +35,6 @@
 #include <cmath>
 #include <cstring>
 
-using namespace std::chrono_literals;
-
 namespace OCC {
 
 Q_LOGGING_CATEGORY(lcPutJob, "sync.networkjob.put", QtInfoMsg)
@@ -63,10 +61,6 @@ static bool fileIsStillChanging(const SyncFileItem &item)
         && msSinceMod > -10000;
 }
 
-<<<<<<< HEAD
-PUTFileJob::PUTFileJob(AccountPtr account, const QUrl &url, const QString &path, std::unique_ptr<QIODevice> device, const QMap<QByteArray, QByteArray> &headers, int chunk, QObject *parent)
-    : AbstractNetworkJob(account, url, path, parent)
-=======
 PUTFileJob::PUTFileJob(AccountPtr account, const QString &path, std::unique_ptr<QIODevice> device, const QMap<QByteArray, QByteArray> &headers, int chunk, QObject *parent)
     : PUTFileJob(account, Utility::concatUrlPath(account->davUrl(), path), std::move(device), headers, chunk, parent)
 {
@@ -76,9 +70,9 @@ PUTFileJob::PUTFileJob(AccountPtr account, const QString &path, std::unique_ptr<
 
 PUTFileJob::PUTFileJob(AccountPtr account, const QUrl &url, std::unique_ptr<QIODevice> device, const QMap<QByteArray, QByteArray> &headers, int chunk, QObject *parent)
     : AbstractNetworkJob(account, QString(), parent)
->>>>>>> refs/remotes/origin/master
     , _device(device.release())
     , _headers(headers)
+    , _url(url)
     , _chunk(chunk)
 {
     _device->setParent(this);
@@ -88,6 +82,8 @@ PUTFileJob::PUTFileJob(AccountPtr account, const QUrl &url, std::unique_ptr<QIOD
 
 PUTFileJob::~PUTFileJob()
 {
+    // Make sure that we destroy the QNetworkReply before our _device of which it keeps an internal pointer.
+    setReply(nullptr);
 }
 
 void PUTFileJob::start()
@@ -96,16 +92,9 @@ void PUTFileJob::start()
     for (auto it = _headers.cbegin(); it != _headers.cend(); ++it) {
         req.setRawHeader(it.key(), it.value());
     }
-<<<<<<< HEAD
-
-    req.setPriority(QNetworkRequest::LowPriority); // Long uploads must not block non-propagation jobs.
-
-    sendRequest("PUT", req, _device);
-=======
     sendRequest("PUT", _url, req, _device);
 
     connect(this, &AbstractNetworkJob::networkActivity, account().data(), &Account::propagatorNetworkActivity);
->>>>>>> refs/remotes/origin/master
     _requestTimer.start();
     AbstractNetworkJob::start();
 }
@@ -163,7 +152,7 @@ void PropagateUploadFileCommon::start()
         return slotComputeContentChecksum();
     }
 
-    auto job = new DeleteJob(propagator()->account(), propagator()->webDavUrl(),
+    auto job = new DeleteJob(propagator()->account(),
         propagator()->fullRemotePath(_item->_file),
         this);
     _jobs.append(job);
@@ -493,12 +482,12 @@ void PropagateUploadFileCommon::commonErrorHandling(AbstractNetworkJob *job)
 
 void PropagateUploadFileCommon::adjustLastJobTimeout(AbstractNetworkJob *job, qint64 fileSize)
 {
-    job->setTimeout(qBound<std::chrono::seconds>(
-        job->timeoutSec(),
+    job->setTimeout(qBound(
+        job->timeoutMsec(),
         // Calculate 3 minutes for each gigabyte of data
-        std::chrono::minutes(static_cast<quint64>((3min).count() * fileSize / 1e9)),
+        qint64((3 * 60 * 1000) * fileSize / 1e9),
         // Maximum of 30 minutes
-        30min));
+        30 * 60 * 1000LL));
 }
 
 void PropagateUploadFileCommon::slotJobDestroyed(QObject *job)
@@ -563,18 +552,9 @@ QMap<QByteArray, QByteArray> PropagateUploadFileCommon::headers()
 
 void PropagateUploadFileCommon::finalize()
 {
-    // Update the quota, if known
-    if (!_quotaUpdated) {
-        auto quotaIt = propagator()->_folderQuota.find(QFileInfo(_item->_file).path());
-        if (quotaIt != propagator()->_folderQuota.end()) {
-            quotaIt.value() -= _item->_size;
-        }
-        _quotaUpdated = true;
-    }
-
     if (_item->_remotePerm.isNull()) {
         qCWarning(lcPropagateUpload) << "PropagateUploadFileCommon::finalize: Missing permissions for" << propagator()->fullRemotePath(_item->_file);
-        auto permCheck = new PropfindJob(propagator()->account(), propagator()->webDavUrl(), propagator()->fullRemotePath(_item->_file));
+        auto permCheck = new PropfindJob(propagator()->account(), propagator()->fullRemotePath(_item->_file));
         _jobs.append(permCheck);
         permCheck->setProperties({ "http://owncloud.org/ns:permissions" });
         connect(permCheck, &PropfindJob::result, this, [this, permCheck](const QMap<QString, QString> &map) {
@@ -586,6 +566,10 @@ void PropagateUploadFileCommon::finalize()
         permCheck->start();
         return;
     }
+    // Update the quota, if known
+    auto quotaIt = propagator()->_folderQuota.find(QFileInfo(_item->_file).path());
+    if (quotaIt != propagator()->_folderQuota.end())
+        quotaIt.value() -= _item->_size;
 
 
 #ifdef Q_OS_WIN

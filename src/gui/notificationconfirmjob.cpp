@@ -13,15 +13,27 @@
  */
 
 #include "notificationconfirmjob.h"
-#include "account.h"
 #include "networkjobs.h"
-#include "networkjobs/jsonjob.h"
+#include "account.h"
 
 #include <QBuffer>
 
 namespace OCC {
 
 Q_DECLARE_LOGGING_CATEGORY(lcNotifications)
+
+NotificationConfirmJob::NotificationConfirmJob(AccountPtr account)
+    : AbstractNetworkJob(account, "")
+    , _widget(nullptr)
+{
+    setIgnoreCredentialFailure(true);
+}
+
+void NotificationConfirmJob::setLinkAndVerb(const QUrl &link, const QByteArray &verb)
+{
+    _link = link;
+    _verb = verb;
+}
 
 void NotificationConfirmJob::setWidget(NotificationWidget *widget)
 {
@@ -35,9 +47,34 @@ NotificationWidget *NotificationConfirmJob::widget()
 
 void NotificationConfirmJob::start()
 {
-    setIgnoreCredentialFailure(true);
+    if (!_link.isValid()) {
+        qCWarning(lcNotifications) << "Attempt to trigger invalid URL: " << _link.toString();
+        return;
+    }
+    QNetworkRequest req;
+    req.setRawHeader("Ocs-APIREQUEST", "true");
+    req.setRawHeader("Content-Type", "application/x-www-form-urlencoded");
 
-    JsonApiJob::start();
+    sendRequest(_verb, _link, req);
+
+    AbstractNetworkJob::start();
 }
 
+bool NotificationConfirmJob::finished()
+{
+    int replyCode = 0;
+    // FIXME: check for the reply code!
+    const QString replyStr = reply()->readAll();
+
+    if (replyStr.contains("<?xml version=\"1.0\"?>")) {
+        QRegExp rex("<statuscode>(\\d+)</statuscode>");
+        if (replyStr.contains(rex)) {
+            // this is a error message coming back from ocs.
+            replyCode = rex.cap(1).toInt();
+        }
+    }
+    emit jobFinished(replyStr, replyCode);
+
+    return true;
+}
 }

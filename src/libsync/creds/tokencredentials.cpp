@@ -102,14 +102,14 @@ QString TokenCredentials::password() const
     return _password;
 }
 
-AccessManager *TokenCredentials::createAM() const
+QNetworkAccessManager *TokenCredentials::createQNAM() const
 {
-    AccessManager *am = new TokenCredentialsAccessManager(this);
+    AccessManager *qnam = new TokenCredentialsAccessManager(this);
 
-    connect(am, &AccessManager::authenticationRequired,
+    connect(qnam, &AccessManager::authenticationRequired,
         this, &TokenCredentials::slotAuthentication);
 
-    return am;
+    return qnam;
 }
 
 bool TokenCredentials::ready() const

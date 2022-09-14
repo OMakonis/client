@@ -367,7 +367,7 @@ public:
     bool _finishedEmited; // used to ensure that finished is only emitted once
 
 public:
-    OwncloudPropagator(AccountPtr account, const SyncOptions &options, const QUrl &baseUrl, const QString &localDir,
+    OwncloudPropagator(AccountPtr account, const QString &localDir,
         const QString &remoteFolder, SyncJournalDb *progressDb)
         : _journal(progressDb)
         , _finishedEmited(false)
@@ -375,12 +375,9 @@ public:
         , _anotherSyncNeeded(false)
         , _chunkSize(10 * 1000 * 1000) // 10 MB, overridden in setSyncOptions
         , _account(account)
-        , _syncOptions(options)
-        , _webDavUrl(baseUrl)
         , _localDir((localDir.endsWith(QLatin1Char('/'))) ? localDir : localDir + QLatin1Char('/'))
         , _remoteFolder((remoteFolder.endsWith(QLatin1Char('/'))) ? remoteFolder : remoteFolder + QLatin1Char('/'))
     {
-        _chunkSize = _syncOptions._initialChunkSize;
         qRegisterMetaType<PropagatorJob::AbortType>("PropagatorJob::AbortType");
     }
 
@@ -389,6 +386,7 @@ public:
     void start(SyncFileItemSet &&_syncedItems);
 
     const SyncOptions &syncOptions() const;
+    void setSyncOptions(const SyncOptions &syncOptions);
 
     int _downloadLimit = 0;
     int _uploadLimit = 0;
@@ -470,14 +468,30 @@ public:
     void reportProgress(const SyncFileItem &, qint64 bytes);
     void reportFileTotal(const SyncFileItem &item, qint64 newSize);
 
-    void abort();
+    void abort()
+    {
+        if (_abortRequested)
+            return;
+        if (_rootJob) {
+            // Connect to abortFinished  which signals that abort has been asynchronously finished
+            connect(_rootJob.data(), &PropagateDirectory::abortFinished, this, &OwncloudPropagator::emitFinished);
+
+            // Use Queued Connection because we're possibly already in an item's finished stack
+            QMetaObject::invokeMethod(
+                _rootJob.data(), [this] {
+                    _rootJob->abort(PropagatorJob::AbortType::Asynchronous);
+                },
+                Qt::QueuedConnection);
+
+            // Give asynchronous abort 5000 msec to finish on its own
+            QTimer::singleShot(5000, this, &OwncloudPropagator::abortTimeout);
+        } else {
+            // No root job, call emitFinished
+            emitFinished(SyncFileItem::NormalError);
+        }
+    }
 
     AccountPtr account() const;
-
-    QUrl webDavUrl() const
-    {
-        return _webDavUrl;
-    }
 
     enum DiskSpaceResult {
         DiskSpaceOk,
@@ -568,7 +582,6 @@ private:
 
     const QString _localDir; // absolute path to the local directory. ends with '/'
     const QString _remoteFolder; // remote folder, ends with '/'
-    const QUrl _webDavUrl; // full webdav url, might be the same as in the account
 };
 
 /**

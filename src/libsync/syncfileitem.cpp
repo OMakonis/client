@@ -75,8 +75,7 @@ SyncFileItemPtr SyncFileItem::fromSyncJournalFileRecord(const SyncJournalFileRec
     return item;
 }
 
-template <>
-QString Utility::enumToDisplayName(SyncFileItem::Status s)
+QString SyncFileItem::statusEnumDisplayName(Status s)
 {
     // TODO: 2.11 enumDisplayName  https://github.com/owncloud/client/issues/9043
     switch (s) {

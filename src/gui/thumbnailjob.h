@@ -39,10 +39,11 @@ signals:
      * @param statusCode the HTTP status code
      * @param reply the content of the reply
      *
-     * Signal that the job is done. If the statusCode is 200 (success).
-     * If the status code is different the content is invalid.
+     * Signal that the job is done. If the statusCode is 200 (success) reply
+     * will contain the image data in PNG. If the status code is different the content
+     * of reply is undefined.
      */
-    void jobFinished(int statusCode, QPixmap reply);
+    void jobFinished(int statusCode, QByteArray reply);
 private slots:
     bool finished() override;
 };

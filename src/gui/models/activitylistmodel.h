@@ -61,20 +61,20 @@ public:
 
 
 public slots:
-    void slotRefreshActivity(AccountStatePtr ast);
-    void slotRemoveAccount(AccountStatePtr ast);
+    void slotRefreshActivity(AccountState *ast);
+    void slotRemoveAccount(const AccountStatePtr &ast);
 
 signals:
-    void activityJobStatusCode(AccountStatePtr ast, int statusCode);
+    void activityJobStatusCode(AccountState *ast, int statusCode);
 
 private:
     void setActivityList(const ActivityList &&resultList);
-    void startFetchJob(AccountStatePtr s);
+    void startFetchJob(AccountState *s);
     void combineActivityLists();
 
-    QMap<AccountStatePtr, ActivityList> _activityLists;
+    QMap<AccountState *, ActivityList> _activityLists;
     ActivityList _finalList;
-    QSet<AccountStatePtr> _currentlyFetching;
+    QSet<AccountState *> _currentlyFetching;
 
     friend class TestActivityModel;
 };

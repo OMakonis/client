@@ -33,12 +33,11 @@
 #else
 # include "creds/httpcredentials.h"
 #endif
+#include "simplesslerrorhandler.h"
+#include "syncengine.h"
 #include "common/syncjournaldb.h"
 #include "config.h"
 #include "csync_exclude.h"
-#include "networkjobs/checkserverjobfactory.h"
-#include "networkjobs/jsonjob.h"
-#include "syncengine.h"
 
 #include "theme.h"
 #include "netrcparser.h"
@@ -72,6 +71,7 @@ struct CmdOptions
     bool ignoreHiddenFiles = true;
     QString exclude;
     QString unsyncedfolders;
+    QString davPath;
     int restartTimes = 3;
     int downlimit = 0;
     int uplimit = 0;
@@ -143,11 +143,10 @@ void sync(const SyncCTX &ctx)
         selectiveSyncFixup(db, selectiveSyncList);
     }
 
-    SyncOptions opt(QSharedPointer<Vfs>(createVfsFromPlugin(Vfs::Off).release()));
+    SyncOptions opt;
     opt.fillFromEnvironmentVariables();
     opt.verifyChunkSizes();
-    auto engine = new SyncEngine(
-        ctx.account, opt, ctx.account->davUrl(), ctx.options.source_dir, ctx.folder, db);
+    auto engine = new SyncEngine(ctx.account, ctx.options.source_dir, ctx.folder, db);
     engine->setParent(db);
 
     QObject::connect(engine, &SyncEngine::finished, engine, [engine, ctx, restartCount = std::make_shared<int>(0)](bool result) {
@@ -199,6 +198,7 @@ void sync(const SyncCTX &ctx)
     });
     QObject::connect(engine, &SyncEngine::syncError, engine,
         [](const QString &error) { qWarning() << "Sync error:" << error; });
+    engine->setSyncOptions(opt);
     engine->setIgnoreHiddenFiles(ctx.options.ignoreHiddenFiles);
     engine->setNetworkLimits(ctx.options.uplimit, ctx.options.downlimit);
 
@@ -275,6 +275,7 @@ class HttpCredentialsText : public HttpCredentials
 public:
     HttpCredentialsText(const QString &user, const QString &password)
         : HttpCredentials(DetermineAuthTypeJob::AuthType::Basic, user, password)
+        , _sslTrusted(false)
     {
     }
 
@@ -285,6 +286,19 @@ public:
         persist();
         emit asked();
     }
+
+    void setSSLTrusted(bool isTrusted)
+    {
+        _sslTrusted = isTrusted;
+    }
+
+    bool sslIsTrusted() override
+    {
+        return _sslTrusted;
+    }
+
+private:
+    bool _sslTrusted;
 };
 #endif /* TOKEN_AUTH_ONLY */
 
@@ -310,6 +324,7 @@ public:
     std::cout << "  --password, -p [pass]  Use [pass] as password" << std::endl;
     std::cout << "  -n                     Use netrc (5) for login" << std::endl;
     std::cout << "  --non-interactive      Do not block execution with interaction" << std::endl;
+    std::cout << "  --davpath [path]       Custom themed dav path" << std::endl;
     std::cout << "  --max-sync-retries [n] Retries maximum n times (default to 3)" << std::endl;
     std::cout << "  --uplimit [n]          Limit the upload speed of files to n KB/s" << std::endl;
     std::cout << "  --downlimit [n]        Limit the download speed of files to n KB/s" << std::endl;
@@ -388,6 +403,8 @@ CmdOptions parseOptions(const QStringList &app_args)
             options.exclude = it.next();
         } else if (option == "--unsyncedfolders" && !it.peekNext().startsWith("-")) {
             options.unsyncedfolders = it.next();
+        } else if (option == "--davpath" && !it.peekNext().startsWith("-")) {
+            options.davPath = it.next();
         } else if (option == "--max-sync-retries" && !it.peekNext().startsWith("-")) {
             options.restartTimes = it.next().toInt();
         } else if (option == "--uplimit" && !it.peekNext().startsWith("-")) {
@@ -417,6 +434,7 @@ int main(int argc, char **argv)
     QString opensslConf = QCoreApplication::applicationDirPath() + QString("/openssl.cnf");
     qputenv("OPENSSL_CONF", opensslConf.toLocal8Bit());
 #endif
+    qsrand(std::random_device()());
     SyncCTX ctx { parseOptions(app.arguments()) };
 
     if (ctx.options.silent) {
@@ -429,6 +447,10 @@ int main(int argc, char **argv)
 
     if (!ctx.account) {
         qFatal("Could not initialize account!");
+    }
+
+    if (!ctx.options.davPath.isEmpty()) {
+        ctx.account->setDavPath(ctx.options.davPath);
     }
 
     if (!ctx.options.target_url.contains(ctx.account->davPath())) {
@@ -527,6 +549,8 @@ int main(int argc, char **argv)
         f.close();
     }
 
+    SimpleSslErrorHandler *sslErrorHandler = new SimpleSslErrorHandler;
+
 #ifdef TOKEN_AUTH_ONLY
     TokenCredentials *cred = new TokenCredentials(ctx.user, password, "");
     account->setCredentials(cred);
@@ -534,62 +558,37 @@ int main(int argc, char **argv)
     HttpCredentialsText *cred = new HttpCredentialsText(ctx.user, password);
     ctx.account->setCredentials(cred);
     if (ctx.options.trustSSL) {
-        QObject::connect(ctx.account->accessManager(), &QNetworkAccessManager::sslErrors, [](QNetworkReply *reply, const QList<QSslError> &errors) {
-            reply->ignoreSslErrors(errors);
-        });
-    } else {
-        QObject::connect(ctx.account->accessManager(), &QNetworkAccessManager::sslErrors, [](QNetworkReply *reply, const QList<QSslError> &errors) {
-            qCritical() << "SSL error encountered";
-            for (auto e : errors) {
-                qCritical() << e.errorString();
-            }
-            qFatal("If you trust the certificate and want to ignore the errors, use the --trust option.");
-        });
+        cred->setSSLTrusted(true);
     }
 #endif
 
     ctx.account->setUrl(ctx.credentialFreeUrl);
+    ctx.account->setSslErrorHandler(sslErrorHandler);
 
-    auto *checkServerJob = CheckServerJobFactory(ctx.account->accessManager()).startJob(ctx.account->url());
+    // Perform a call to get the capabilities.
+    auto capabilitiesJob = new JsonApiJob(ctx.account, QLatin1String("ocs/v1.php/cloud/capabilities"));
+    QObject::connect(capabilitiesJob, &JsonApiJob::jsonReceived, qApp, [capabilitiesJob, ctx](const QJsonDocument &json) {
+        auto caps = json.object().value("ocs").toObject().value("data").toObject().value("capabilities").toObject();
+        qDebug() << "Server capabilities" << caps;
+        ctx.account->setCapabilities(caps.toVariantMap());
+        ctx.account->setServerVersion(caps["core"].toObject()["status"].toObject()["version"].toString());
 
-    QObject::connect(checkServerJob, &CoreJob::finished, [ctx, checkServerJob] {
-        if (checkServerJob->success()) {
-            // Perform a call to get the capabilities.
-            auto *capabilitiesJob = new JsonApiJob(ctx.account, QStringLiteral("ocs/v1.php/cloud/capabilities"), {}, {}, nullptr);
-            QObject::connect(capabilitiesJob, &JsonApiJob::finishedSignal, qApp, [capabilitiesJob, ctx] {
-                auto caps = capabilitiesJob->data().value("ocs").toObject().value("data").toObject().value("capabilities").toObject();
-                qDebug() << "Server capabilities" << caps;
-                ctx.account->setCapabilities(caps.toVariantMap());
-                ctx.account->setServerInfo(caps["core"].toObject()["status"].toObject()["version"].toString(),
-                    caps["core"].toObject()["status"].toObject()["productname"].toString());
-
-                if (capabilitiesJob->reply()->error() != QNetworkReply::NoError) {
-                    qFatal("Error connecting to server");
-                }
-
-                auto userJob = new JsonApiJob(ctx.account, QLatin1String("ocs/v1.php/cloud/user"), {}, {}, nullptr);
-                QObject::connect(userJob, &JsonApiJob::finishedSignal, qApp, [userJob, ctx] {
-                    const QJsonObject data = userJob->data().value("ocs").toObject().value("data").toObject();
-                    ctx.account->setDavUser(data.value("id").toString());
-                    ctx.account->setDavDisplayName(data.value("display-name").toString());
-
-                    // much lower age than the default since this utility is usually made to be run right after a change in the tests
-                    SyncEngine::minimumFileAgeForUpload = std::chrono::milliseconds(0);
-                    sync(ctx);
-                });
-                userJob->start();
-            });
-            capabilitiesJob->start();
-        } else {
-            switch (checkServerJob->reply()->error()) {
-            case QNetworkReply::OperationCanceledError:
-                qFatal("Looking up %s timed out.", qPrintable(ctx.account->url().toString()));
-                break;
-            default:
-                qFatal("Failed to resolve %s.", qPrintable(ctx.account->url().toString()));
-            }
+        if (capabilitiesJob->reply()->error() != QNetworkReply::NoError) {
+            qFatal("Error connecting to server");
         }
-    });
 
+        auto userJob = new JsonApiJob(ctx.account, QLatin1String("ocs/v1.php/cloud/user"));
+        QObject::connect(userJob, &JsonApiJob::jsonReceived, qApp, [ctx](const QJsonDocument &json) {
+            const QJsonObject data = json.object().value("ocs").toObject().value("data").toObject();
+            ctx.account->setDavUser(data.value("id").toString());
+            ctx.account->setDavDisplayName(data.value("display-name").toString());
+
+            // much lower age than the default since this utility is usually made to be run right after a change in the tests
+            SyncEngine::minimumFileAgeForUpload = std::chrono::milliseconds(0);
+            sync(ctx);
+        });
+        userJob->start();
+    });
+    capabilitiesJob->start();
     return app.exec();
 }

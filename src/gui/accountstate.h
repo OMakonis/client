@@ -18,23 +18,20 @@
 
 #include "jobqueue.h"
 
-#include "connectionvalidator.h"
-#include "creds/abstractcredentials.h"
-#include "updateurldialog.h"
 #include <QByteArray>
 #include <QElapsedTimer>
 #include <QPointer>
+#include "connectionvalidator.h"
+#include "creds/abstractcredentials.h"
 #include <memory>
 
-class QDialog;
-class QMessageBox;
 class QSettings;
+class QMessageBox;
 
 namespace OCC {
 
 class AccountState;
 class Account;
-class TlsErrorDialog;
 
 /**
  * @brief Extra info about an ownCloud server account.
@@ -43,7 +40,7 @@ class TlsErrorDialog;
 class AccountState : public QObject, public QSharedData
 {
     Q_OBJECT
-    Q_PROPERTY(AccountPtr account MEMBER _account READ account)
+    Q_PROPERTY(AccountPtr account MEMBER _account)
 
 public:
     enum State {
@@ -80,15 +77,15 @@ public:
     /// The actual current connectivity status.
     typedef ConnectionValidator::Status ConnectionStatus;
 
+    /// Use the account as parent
+    explicit AccountState(AccountPtr account);
     ~AccountState() override;
 
     /** Creates an account state from settings and an Account object.
      *
      * Use from AccountManager with a prepared QSettings object only.
      */
-    static AccountStatePtr loadFromSettings(AccountPtr account, const QSettings &settings);
-
-    static AccountStatePtr fromNewAccount(AccountPtr account);
+    static AccountState *loadFromSettings(AccountPtr account, const QSettings &settings);
 
     /** Writes account state information to settings.
      *
@@ -135,7 +132,7 @@ public:
      *  was not so long ago.
      */
     void tagLastSuccessfullETagRequest(const QDateTime &tp);
-    UpdateUrlDialog *updateUrlDialog(const QUrl &newUrl);
+    void updateUrlDialog(const QUrl &url);
 
 public slots:
     /// Triggers a ping to the server to update state and
@@ -144,9 +141,6 @@ public slots:
     void checkConnectivity(bool verifyServerState = false);
 
 private:
-    /// Use the account as parent
-    explicit AccountState(AccountPtr account);
-
     void setState(State state);
 
 signals:
@@ -169,8 +163,7 @@ private:
     bool _waitingForNewCredentials;
     QDateTime _timeOfLastETagCheck;
     QPointer<ConnectionValidator> _connectionValidator;
-    QPointer<UpdateUrlDialog> _updateUrlDialog;
-    QPointer<TlsErrorDialog> _tlsDialog;
+    QPointer<QMessageBox> _updateUrlDialog;
 
     /**
      * Starts counting when the server starts being back up after 503 or
@@ -182,7 +175,7 @@ private:
     /**
      * Milliseconds for which to delay reconnection after 503/maintenance.
      */
-    std::chrono::milliseconds _maintenanceToConnectedDelay;
+    int _maintenanceToConnectedDelay;
 };
 }
 

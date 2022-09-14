@@ -15,11 +15,11 @@
 #ifndef OCSSHAREJOB_H
 #define OCSSHAREJOB_H
 
-#include "networkjobs/jsonjob.h"
+#include "ocsjob.h"
 #include "sharemanager.h"
+#include <QVector>
 #include <QList>
 #include <QPair>
-#include <QVector>
 
 class QJsonDocument;
 
@@ -32,18 +32,26 @@ namespace OCC {
  * Handle talking to the OCS Share API. 
  * For creation, deletion and modification of shares.
  */
-namespace OcsShareJob {
+class OcsShareJob : public OcsJob
+{
+    Q_OBJECT
+public:
+    /**
+     * Constructor for new shares or listing of shares
+     */
+    explicit OcsShareJob(AccountPtr account);
+
     /**
      * Get all the shares
      *
      * @param path Path to request shares for (default all shares)
      */
-    JsonApiJob *getShares(AccountPtr account, QObject *parent, const QString &path);
+    void getShares(const QString &path = "");
 
     /**
      * Delete the current Share
      */
-    JsonApiJob *deleteShare(AccountPtr account, QObject *parent, const QString &shareId);
+    void deleteShare(const QString &shareId);
 
     /**
      * Set the expiration date of a share
@@ -51,7 +59,7 @@ namespace OcsShareJob {
      * @param date The expire date, if this date is invalid the expire date
      * will be removed
      */
-    JsonApiJob *setExpireDate(AccountPtr account, QObject *parent, const QString &shareId, const QDate &date);
+    void setExpireDate(const QString &shareId, const QDate &date);
 
     /**
      * Set the password of a share
@@ -59,26 +67,26 @@ namespace OcsShareJob {
      * @param password The password of the share, if the password is empty the
      * share will be removed
      */
-    JsonApiJob *setPassword(AccountPtr account, QObject *parent, const QString &shareId, const QString &password);
+    void setPassword(const QString &shareId, const QString &password);
 
     /**
      * Set the share to be public upload
      * 
      * @param publicUpload Set or remove public upload
      */
-    JsonApiJob *setPublicUpload(AccountPtr account, QObject *parent, const QString &shareId, bool publicUpload);
+    void setPublicUpload(const QString &shareId, bool publicUpload);
 
     /**
      * Change the name of a share
      */
-    JsonApiJob *setName(AccountPtr account, QObject *parent, const QString &shareId, const QString &name);
+    void setName(const QString &shareId, const QString &name);
 
     /**
      * Set the permissions
      *
      * @param permissions
      */
-    JsonApiJob *setPermissions(AccountPtr account, QObject *parent, const QString &shareId,
+    void setPermissions(const QString &shareId,
         const Share::Permissions permissions);
 
     /**
@@ -90,7 +98,7 @@ namespace OcsShareJob {
      * @param expireDate Target expire data (may be null)
      * @param permissions Desired permissions (SharePermissionDefault leaves to server)
      */
-    JsonApiJob *createLinkShare(AccountPtr account, QObject *parent, const QString &path,
+    void createLinkShare(const QString &path,
         const QString &name,
         const QString &password,
         const QDate &expireDate,
@@ -104,7 +112,7 @@ namespace OcsShareJob {
      * @param shareWith The uid/gid/federated id to share with
      * @param permissions The permissions the share will have
      */
-    JsonApiJob *createShare(AccountPtr account, QObject *parent, const QString &path,
+    void createShare(const QString &path,
         const Share::ShareType shareType,
         const QString &shareWith = "",
         const Share::Permissions permissions = SharePermissionRead);
@@ -112,8 +120,25 @@ namespace OcsShareJob {
     /**
      * Returns information on the items shared with the current user.
      */
-    JsonApiJob *getSharedWithMe(AccountPtr account, QObject *parent);
+    void getSharedWithMe();
 
+signals:
+    /**
+     * Result of the OCS request
+     * The value parameter is only set if this was a put request.
+     * e.g. if we set the password to 'foo' the QVariant will hold a QString with 'foo'.
+     * This is needed so we can update the share objects properly
+     *
+     * @param reply The reply
+     * @param value To what did we set a variable (if we set any).
+     */
+    void shareJobFinished(QJsonDocument reply, QVariant value);
+
+private slots:
+    void jobDone(QJsonDocument reply);
+
+private:
+    QVariant _value;
 };
 }
 

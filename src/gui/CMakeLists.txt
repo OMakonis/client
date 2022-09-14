@@ -6,9 +6,13 @@ if (WIN32)
     find_package(Qt5 REQUIRED COMPONENTS WinExtras)
 endif()
 
+add_subdirectory(updater)
+
 set(client_UI_SRCS
     aboutdialog.ui
     accountsettings.ui
+    folderwizardsourcepage.ui
+    folderwizardtargetpage.ui
     generalsettings.ui
     ignorelisteditor.ui
     networksettings.ui
@@ -20,10 +24,14 @@ set(client_UI_SRCS
     sharelinkwidget.ui
     shareusergroupwidget.ui
     shareuserline.ui
-    tlserrordialog.ui
+    sslerrordialog.ui
     proxyauthdialog.ui
     notificationwidget.ui
     logbrowser.ui
+    wizard/owncloudadvancedsetuppage.ui
+    wizard/owncloudhttpcredspage.ui
+    wizard/owncloudoauthcredspage.ui
+    wizard/owncloudsetuppage.ui
 )
 
 set(client_SRCS
@@ -31,7 +39,6 @@ set(client_SRCS
     accountmanager.cpp
     accountsettings.cpp
     application.cpp
-    askexperimentalvirtualfilesfeaturemessagebox.cpp
     clientproxy.cpp
     commonstrings.cpp
     connectionvalidator.cpp
@@ -40,14 +47,18 @@ set(client_SRCS
     folderstatusmodel.cpp
     folderstatusdelegate.cpp
     folderwatcher.cpp
+    folderwizard.cpp
     generalsettings.cpp
     ignorelisteditor.cpp
     lockwatcher.cpp
     logbrowser.cpp
     networksettings.cpp
+    ocsjob.cpp
     ocssharejob.cpp
+    ocsshareejob.cpp
     openfilemanager.cpp
     owncloudgui.cpp
+    owncloudsetupwizard.cpp
     protocolwidget.cpp
     protocolitem.cpp
     issueswidget.cpp
@@ -60,14 +71,14 @@ set(client_SRCS
     sharemanager.cpp
     shareusergroupwidget.cpp
     sharee.cpp
-    tlserrordialog.cpp
+    sslbutton.cpp
+    sslerrordialog.cpp
     syncrunfilelog.cpp
     systray.cpp
     thumbnailjob.cpp
     quotainfo.cpp
     accountstate.cpp
     authenticationdialog.cpp
-    platform.cpp
     proxyauthhandler.cpp
     proxyauthdialog.cpp
     tooltipupdater.cpp
@@ -78,12 +89,20 @@ set(client_SRCS
     elidedlabel.cpp
     translations.cpp
     creds/httpcredentialsgui.cpp
-    updateurldialog.cpp
 
     models/activitylistmodel.cpp
     models/expandingheaderview.cpp
     models/models.cpp
     models/protocolitemmodel.cpp
+
+    wizard/postfixlineedit.cpp
+    wizard/abstractcredswizardpage.cpp
+    wizard/owncloudadvancedsetuppage.cpp
+    wizard/owncloudhttpcredspage.cpp
+    wizard/owncloudoauthcredspage.cpp
+    wizard/owncloudsetuppage.cpp
+    wizard/owncloudwizardcommon.cpp
+    wizard/owncloudwizard.cpp
 )
 
 set(3rdparty_SRC
@@ -111,23 +130,10 @@ if(TARGET qt5keychain)
     list(APPEND libsync_LINK_TARGETS qt5keychain)
 endif()
 
-add_subdirectory(newwizard)
-add_subdirectory(folderwizard)
-
 add_library(owncloudCore STATIC ${final_src})
 set_target_properties(owncloudCore PROPERTIES AUTOUIC ON AUTORCC ON)
 target_link_libraries(owncloudCore PUBLIC Qt5::Widgets Qt5::Network Qt5::Xml
-                                          libsync newwizard folderwizard spaces)
-target_compile_definitions(owncloudCore
-    PUBLIC QT_USE_QSTRINGBUILDER
-           QT_MESSAGELOGCONTEXT  # enable function name and line number in debug output
-           QT_DEPRECATED_WARNINGS
-           QT_NO_FOREACH
-)
-
-
-add_subdirectory(spaces)
-
+                                          libsync)
 
 add_subdirectory(socketapi)
 
@@ -138,20 +144,34 @@ target_include_directories(owncloudCore PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+
+target_sources(owncloudCore PRIVATE
+    updater/ocupdater.cpp
+    updater/updateinfo.cpp
+    updater/updater.cpp
+)
+
 IF( APPLE )
     find_package(Qt5 COMPONENTS MacExtras)
     target_link_libraries(owncloudCore PUBLIC Qt5::MacExtras)
 
     target_sources(owncloudCore PRIVATE
-            platform_mac.mm
+            cocoainitializer_mac.mm
             systray.mm
             settingsdialog_mac.mm
-            guiutility_mac.mm
+
             folderwatcher_mac.cpp)
+
+    if(SPARKLE_FOUND)
+        # Define this, we need to check in updater.cpp
+        target_compile_definitions(owncloudCore PUBLIC HAVE_SPARKLE)
+        target_sources(owncloudCore PRIVATE
+            updater/sparkleupdater_mac.mm
+            updater/sparkleupdater.h)
+        target_link_libraries(owncloudCore PRIVATE ${SPARKLE_LIBRARY})
+   endif()
 elseif( WIN32 )
     target_sources(owncloudCore PRIVATE
-            platform_win.cpp
-            guiutility_win.cpp
             folderwatcher_win.cpp
             navigationpanehelper.cpp)
     target_link_libraries(owncloudCore PUBLIC Qt5::WinExtras)
@@ -162,13 +182,8 @@ elseif(UNIX AND NOT APPLE )
         target_link_libraries(owncloudCore PUBLIC Qt5::DBus)
         target_compile_definitions(owncloudCore PUBLIC "USE_FDO_NOTIFICATIONS")
     endif()
-    target_sources(owncloudCore PRIVATE
-            folderwatcher_linux.cpp
-            platform_unix.cpp
-            guiutility_unix.cpp)
+    target_sources(owncloudCore PRIVATE folderwatcher_linux.cpp)
 endif()
-
-add_subdirectory(updater)
 
 
 if(WITH_CRASHREPORTER)

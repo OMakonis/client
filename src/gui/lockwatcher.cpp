@@ -18,17 +18,11 @@
 #include <QLoggingCategory>
 #include <QTimer>
 
-#include <chrono>
-
-using namespace std::chrono_literals;
-
 using namespace OCC;
 
 Q_LOGGING_CATEGORY(lcLockWatcher, "gui.lockwatcher", QtInfoMsg)
 
-namespace {
-const auto check_frequency = 20s;
-}
+static const int check_frequency = 20 * 1000; // ms
 
 LockWatcher::LockWatcher(QObject *parent)
     : QObject(parent)

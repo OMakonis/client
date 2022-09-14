@@ -26,19 +26,15 @@
 #include "common/asserts.h"
 #include "common/vfs.h"
 
-#include <QDir>
-#include <QFileInfo>
 #include <QLoggingCategory>
 #include <QNetworkAccessManager>
-#include <QRandomGenerator>
-
+#include <QFileInfo>
+#include <QDir>
 #include <cmath>
 
 #ifdef Q_OS_UNIX
 #include <unistd.h>
 #endif
-
-using namespace std::chrono_literals;
 
 namespace OCC {
 
@@ -52,30 +48,29 @@ QString OWNCLOUDSYNC_EXPORT createDownloadTmpFileName(const QString &previous)
 {
     QString tmpFileName;
     QString tmpPath;
-    const int slashPos = previous.lastIndexOf(QLatin1Char('/'));
+    int slashPos = previous.lastIndexOf(QLatin1Char('/'));
     // work with both pathed filenames and only filenames
     if (slashPos == -1) {
         tmpFileName = previous;
+        tmpPath = QString();
     } else {
         tmpFileName = previous.mid(slashPos + 1);
         tmpPath = previous.left(slashPos);
     }
-
-    auto rg = QRandomGenerator::global();
-    const int overhead = 1 + 1 + 2 + 8; // slash dot dot-tilde ffffffff"
-    const int spaceForFileName = qMin(254, tmpFileName.length() + overhead) - overhead;
+    int overhead = 1 + 1 + 2 + 8; // slash dot dot-tilde ffffffff"
+    int spaceForFileName = qMin(254, tmpFileName.length() + overhead) - overhead;
     if (tmpPath.length() > 0) {
-        return QStringLiteral("%1/.%2.~%3").arg(tmpPath, tmpFileName.left(spaceForFileName), QString::number(uint(rg->generate() % 0xFFFFFFFF), 16));
+        return QStringLiteral("%1/.%2.~%3").arg(tmpPath, tmpFileName.left(spaceForFileName), QString::number(uint(qrand() % 0xFFFFFFFF), 16));
     } else {
-        return QStringLiteral(".%1.~%2").arg(tmpFileName.left(spaceForFileName), QString::number(uint(rg->generate() % 0xFFFFFFFF), 16));
+        return QStringLiteral(".%1.~%2").arg(tmpFileName.left(spaceForFileName), QString::number(uint(qrand() % 0xFFFFFFFF), 16));
     }
 }
 
 // DOES NOT take ownership of the device.
-GETFileJob::GETFileJob(AccountPtr account, const QUrl &url, const QString &path, QIODevice *device,
+GETFileJob::GETFileJob(AccountPtr account, const QString &path, QIODevice *device,
     const QMap<QByteArray, QByteArray> &headers, const QByteArray &expectedEtagForResume,
     qint64 resumeStart, QObject *parent)
-    : GETJob(account, url, path, parent)
+    : GETJob(account, path, parent)
     , _device(device)
     , _headers(headers)
     , _expectedEtagForResume(expectedEtagForResume)
@@ -88,8 +83,6 @@ GETFileJob::GETFileJob(AccountPtr account, const QUrl &url, const QString &path,
     setPriority(QNetworkRequest::LowPriority);
 }
 
-<<<<<<< HEAD
-=======
 GETFileJob::GETFileJob(AccountPtr account, const QUrl &url, QIODevice *device,
     const QMap<QByteArray, QByteArray> &headers, const QByteArray &expectedEtagForResume,
     qint64 resumeStart, QObject *parent)
@@ -107,7 +100,6 @@ GETFileJob::GETFileJob(AccountPtr account, const QUrl &url, QIODevice *device,
     setPriority(QNetworkRequest::LowPriority);
 }
 
->>>>>>> refs/remotes/origin/master
 void GETFileJob::start()
 {
     if (_resumeStart > 0) {
@@ -121,23 +113,20 @@ void GETFileJob::start()
         req.setRawHeader(it.key(), it.value());
     }
 
-<<<<<<< HEAD
-    req.setPriority(QNetworkRequest::LowPriority); // Long downloads must not block non-propagation jobs.
-
-    sendRequest("GET", req);
-=======
     if (_directDownloadUrl.isEmpty()) {
         sendRequest("GET", makeDavUrl(path()), req);
     } else {
         // Use direct URL
         sendRequest("GET", _directDownloadUrl, req);
     }
->>>>>>> refs/remotes/origin/master
 
     qCDebug(lcGetJob) << _bandwidthManager << _bandwidthChoked << _bandwidthLimited;
     if (_bandwidthManager) {
         _bandwidthManager->registerDownloadJob(this);
     }
+
+    connect(this, &AbstractNetworkJob::networkActivity, account().data(), &Account::propagatorNetworkActivity);
+
     AbstractNetworkJob::start();
 }
 
@@ -183,7 +172,12 @@ void GETFileJob::slotMetaDataChanged()
     }
     _etag = getEtagFromReply(reply());
 
-    if (_etag.isEmpty()) {
+    if (!_directDownloadUrl.isEmpty() && !_etag.isEmpty()) {
+        qCInfo(lcGetJob) << "Direct download used, ignoring server ETag" << _etag;
+        _etag = QByteArray(); // reset received ETag
+    } else if (!_directDownloadUrl.isEmpty()) {
+        // All fine, ETag empty and directDownloadUrl used
+    } else if (_etag.isEmpty()) {
         qCWarning(lcGetJob) << "No E-Tag reply by server, considering it invalid";
         _errorString = tr("No E-Tag received from server, check Proxy/Gateway");
         _errorStatus = SyncFileItem::NormalError;
@@ -335,22 +329,14 @@ void GETFileJob::slotReadyRead()
     }
 }
 
-GETJob::GETJob(AccountPtr account, const QUrl &rootUrl, const QString &path, QObject *parent)
-    : AbstractNetworkJob(account, rootUrl, path, parent)
+void GETJob::onTimedOut()
 {
-    connect(this, &GETJob::networkError, this, [this] {
-        if (timedOut()) {
-            qCWarning(lcGetJob) << this << "timeout";
-            _errorString = tr("Connection Timeout");
-            _errorStatus = SyncFileItem::FatalError;
-        }
-    });
-}
-GETJob::~GETJob()
-{
-    if (_bandwidthManager) {
-        _bandwidthManager->unregisterDownloadJob(this);
+    qCWarning(lcGetJob) << this << "timeout";
+    if (reply()) {
+        _errorString = tr("Connection Timeout");
+        _errorStatus = SyncFileItem::FatalError;
     }
+    AbstractNetworkJob::onTimedOut();
 }
 
 QString GETJob::errorString() const
@@ -566,7 +552,7 @@ void PropagateDownloadFile::startFullDownload()
 
     if (_item->_directDownloadUrl.isEmpty()) {
         // Normal job, download from oC instance
-        _job = new GETFileJob(propagator()->account(), propagator()->webDavUrl(),
+        _job = new GETFileJob(propagator()->account(),
             propagator()->fullRemotePath(_item->_file),
             &_tmpFile, headers, _expectedEtagForResume, _resumeStart, this);
     } else {
@@ -580,7 +566,6 @@ void PropagateDownloadFile::startFullDownload()
         QUrl url = QUrl::fromUserInput(_item->_directDownloadUrl);
         _job = new GETFileJob(propagator()->account(),
             url,
-            {},
             &_tmpFile, headers, _expectedEtagForResume, _resumeStart, this);
     }
     _job->setBandwidthManager(&propagator()->_bandwidthManager);
@@ -710,7 +695,7 @@ void PropagateDownloadFile::slotGetFinished()
     // of the compressed data. See QTBUG-73364.
     const auto contentEncoding = job->reply()->rawHeader("content-encoding").toLower();
     if ((contentEncoding == "gzip" || contentEncoding == "deflate")
-        && (job->reply()->attribute(QNetworkRequest::Http2WasUsedAttribute).toBool()
+        && (job->reply()->attribute(QNetworkRequest::HTTP2WasUsedAttribute).toBool()
             || job->reply()->attribute(QNetworkRequest::SpdyWasUsedAttribute).toBool())) {
         bodySize = 0;
         hasSizeHeader = false;
@@ -944,6 +929,9 @@ void PropagateDownloadFile::downloadFinished()
         }
     }
 
+    // Apply the remote permissions
+    FileSystem::setFileReadOnlyWeak(_tmpFile.fileName(), !_item->_remotePerm.isNull() && !_item->_remotePerm.hasPermission(RemotePermissions::CanWrite));
+
     bool isConflict = _item->_instruction == CSYNC_INSTRUCTION_CONFLICT
         && (QFileInfo(fn).isDir() || !FileSystem::fileEquals(fn, _tmpFile.fileName()));
     if (isConflict) {
@@ -1053,9 +1041,9 @@ void PropagateDownloadFile::updateMetadata(bool isConflict)
         handleRecallFile(fn, propagator()->localPath(), *propagator()->_journal);
     }
 
-    const auto duration = std::chrono::milliseconds(_stopwatch.elapsed());
-    if (isLikelyFinishedQuickly() && duration > 5s) {
-        qCWarning(lcPropagateDownload) << "WARNING: Unexpectedly slow connection, took" << duration.count() << "ms for" << _item->_size - _resumeStart << "bytes for" << _item->_file;
+    qint64 duration = _stopwatch.elapsed();
+    if (isLikelyFinishedQuickly() && duration > 5 * 1000) {
+        qCWarning(lcPropagateDownload) << "WARNING: Unexpectedly slow connection, took" << duration << "msec for" << _item->_size - _resumeStart << "bytes for" << _item->_file;
     }
 }
 

@@ -30,7 +30,6 @@ class QJsonDocument;
 class QJsonObject;
 
 namespace OCC {
-class JsonApiJob;
 
 class Share : public QObject
 {
@@ -108,7 +107,6 @@ signals:
     void shareDeleted();
     void serverError(int code, const QString &message);
 
-
 protected:
     AccountPtr _account;
     QString _id;
@@ -116,6 +114,13 @@ protected:
     ShareType _shareType;
     Permissions _permissions;
     QSharedPointer<Sharee> _shareWith;
+
+protected slots:
+    void slotOcsError(int statusCode, const QString &message);
+
+private slots:
+    void slotDeleted();
+    void slotPermissionsSet(const QJsonDocument &, const QVariant &value);
 };
 
 /**
@@ -206,6 +211,12 @@ signals:
     void passwordSetError(int statusCode, const QString &message);
     void nameSet();
 
+private slots:
+    void slotPasswordSet(const QJsonDocument &, const QVariant &value);
+    void slotExpireDateSet(const QJsonDocument &reply, const QVariant &value);
+    void slotSetPasswordError(int statusCode, const QString &message);
+    void slotNameSet(const QJsonDocument &, const QVariant &value);
+
 private:
     QString _name;
     QString _token;
@@ -256,7 +267,7 @@ public:
      */
     void createShare(const QString &path,
         const Share::ShareType shareType,
-        const QString &shareWith,
+        const QString shareWith,
         const Share::Permissions permissions);
 
     /**
@@ -284,6 +295,11 @@ signals:
      */
     void linkShareCreationForbidden(const QString &message);
 
+private slots:
+    void slotSharesFetched(const QJsonDocument &reply);
+    void slotLinkShareCreated(const QJsonDocument &reply);
+    void slotShareCreated(const QJsonDocument &reply);
+    void slotOcsError(int statusCode, const QString &message);
 private:
     QSharedPointer<LinkShare> parseLinkShare(const QJsonObject &data);
     QSharedPointer<Share> parseShare(const QJsonObject &data);

@@ -33,7 +33,7 @@ namespace OCC {
 class OWNCLOUDSYNC_EXPORT SyncOptions
 {
 public:
-    explicit SyncOptions(QSharedPointer<Vfs> vfs);
+    SyncOptions();
     ~SyncOptions();
 
     /** Maximum size (in Bytes) a folder can have without asking for confirmation.

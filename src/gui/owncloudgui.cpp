@@ -12,28 +12,25 @@
  * for more details.
  */
 
-#include "owncloudgui.h"
-#include "aboutdialog.h"
-#include "account.h"
-#include "accountmanager.h"
-#include "accountstate.h"
 #include "application.h"
-#include "common/syncjournalfilerecord.h"
-#include "configfile.h"
-#include "creds/abstractcredentials.h"
-#include "folderman.h"
-#include "folderwizard/folderwizard.h"
-#include "graphapi/drives.h"
-#include "gui/accountsettings.h"
-#include "guiutility.h"
-#include "logbrowser.h"
-#include "logger.h"
-#include "openfilemanager.h"
-#include "progressdispatcher.h"
-#include "settingsdialog.h"
-#include "setupwizardcontroller.h"
-#include "sharedialog.h"
+#include "owncloudgui.h"
 #include "theme.h"
+#include "folderman.h"
+#include "configfile.h"
+#include "progressdispatcher.h"
+#include "owncloudsetupwizard.h"
+#include "sharedialog.h"
+#include "settingsdialog.h"
+#include "logger.h"
+#include "logbrowser.h"
+#include "account.h"
+#include "accountstate.h"
+#include "openfilemanager.h"
+#include "accountmanager.h"
+#include "aboutdialog.h"
+#include "common/syncjournalfilerecord.h"
+#include "creds/abstractcredentials.h"
+#include "guiutility.h"
 
 #include <QDesktopServices>
 #include <QDir>
@@ -44,60 +41,7 @@
 
 #ifdef WITH_LIBCLOUDPROVIDERS
 #include "libcloudproviders/libcloudproviders.h"
-#include "selectivesyncdialog.h"
 #endif
-
-using namespace std::chrono_literals;
-
-namespace {
-
-using namespace OCC;
-
-void setUpInitialSyncFolder(AccountStatePtr accountStatePtr, bool useVfs)
-{
-    auto folderMan = FolderMan::instance();
-
-    // saves a bit of duplicate code
-    auto addFolder = [folderMan, accountStatePtr, useVfs](const QString &localFolder, const QString &remotePath, const QUrl &webDavUrl, const QString &displayName = {}) {
-        folderMan->addFolderFromWizard(accountStatePtr, localFolder, remotePath, webDavUrl, displayName, useVfs);
-    };
-
-    auto finalize = [accountStatePtr] {
-        accountStatePtr->checkConnectivity();
-        FolderMan::instance()->scheduleAllFolders();
-    };
-
-    if (accountStatePtr->account()->capabilities().spacesSupport().enabled) {
-        auto *drive = new GraphApi::Drives(accountStatePtr->account());
-
-        QObject::connect(drive, &GraphApi::Drives::finishedSignal, [accountStatePtr, drive, addFolder, finalize] {
-            if (drive->parseError().error == QJsonParseError::NoError) {
-                const auto &drives = drive->drives();
-                if (!drives.isEmpty()) {
-                    const QString localDir(accountStatePtr->account()->defaultSyncRoot());
-                    FolderMan::prepareFolder(localDir);
-                    Utility::setupFavLink(localDir);
-                    for (const auto &d : drives) {
-                        const QString name = GraphApi::Drives::getDriveDisplayName(d);
-                        const QString mountPoint = localDir + QDir::separator() + GraphApi::Drives::getDriveMountPoint(d);
-                        FolderMan::prepareFolder(mountPoint);
-                        const QString folderName = FolderMan::instance()->findGoodPathForNewSyncFolder(mountPoint + QDir::separator() + name);
-                        addFolder(folderName, {}, QUrl::fromEncoded(d.getRoot().getWebDavUrl().toUtf8()), name);
-                    }
-                    finalize();
-                }
-            }
-        });
-
-        drive->start();
-
-        return;
-    } else {
-        addFolder(accountStatePtr->account()->defaultSyncRoot(), Theme::instance()->defaultServerFolder(), accountStatePtr->account()->davUrl());
-        finalize();
-    }
-}
-}
 
 namespace OCC {
 
@@ -239,7 +183,7 @@ void ownCloudGui::slotTrayMessageIfServerUnsupported(Account *account)
             tr("The server on account %1 runs an unsupported version %2. "
                "Using this client with unsupported server versions is untested and "
                "potentially dangerous. Proceed at your own risk.")
-                .arg(account->displayName(), account->serverVersionString()));
+                .arg(account->displayName(), account->serverVersion()));
     }
 }
 
@@ -267,7 +211,7 @@ void ownCloudGui::slotComputeOverallSyncStatus()
         }
     }
 
-    const auto &map = FolderMan::instance()->folders();
+    const auto &map = FolderMan::instance()->map();
     for (auto *f : map) {
         if (!f->syncPaused()) {
             allPaused = false;
@@ -319,7 +263,7 @@ void ownCloudGui::slotComputeOverallSyncStatus()
     // display the info of the least successful sync (eg. do not just display the result of the latest sync)
     QString trayMessage;
 
-    auto trayOverallStatusResult = FolderMan::trayOverallStatus(map);
+    auto trayOverallStatusResult = FolderMan::trayOverallStatus(map.values());
 
     const QIcon statusIcon = Theme::instance()->syncStateIcon(trayOverallStatusResult.overallStatus(), true, contextMenuVisible());
     _tray->setIcon(statusIcon);
@@ -380,7 +324,7 @@ void ownCloudGui::addAccountContextMenu(AccountStatePtr accountState, QMenu *men
 
     FolderMan *folderMan = FolderMan::instance();
     bool firstFolder = true;
-    const auto &map = folderMan->folders();
+    const auto &map = folderMan->map();
     bool singleSyncFolder = map.size() == 1 && Theme::instance()->singleSyncFolder();
     bool onePaused = false;
     bool allPaused = true;
@@ -402,7 +346,8 @@ void ownCloudGui::addAccountContextMenu(AccountStatePtr accountState, QMenu *men
         }
 
         QAction *action = menu->addAction(tr("Open folder '%1'").arg(folder->shortGuiLocalPath()));
-        connect(action, &QAction::triggered, this, [this, folder] { this->slotFolderOpenAction(folder); });
+        auto alias = folder->alias();
+        connect(action, &QAction::triggered, this, [this, alias] { this->slotFolderOpenAction(alias); });
     }
 
     menu->addSeparator();
@@ -599,7 +544,7 @@ void ownCloudGui::setupContextMenu()
 
 
     connect(&_delayedTrayUpdateTimer, &QTimer::timeout, this, &ownCloudGui::updateContextMenu);
-    _delayedTrayUpdateTimer.setInterval(2s);
+    _delayedTrayUpdateTimer.setInterval(2 * 1000);
     _delayedTrayUpdateTimer.setSingleShot(true);
 
     connect(_contextMenu.data(), &QMenu::aboutToShow, this, &ownCloudGui::slotContextMenuAboutToShow);
@@ -666,7 +611,7 @@ void ownCloudGui::updateContextMenu()
         }
     }
 
-    for (auto *f : FolderMan::instance()->folders()) {
+    for (auto *f : FolderMan::instance()->map()) {
         if (f->syncPaused()) {
             atLeastOnePaused = true;
         } else {
@@ -799,8 +744,9 @@ void ownCloudGui::slotShowOptionalTrayMessage(const QString &title, const QStrin
 /*
  * open the folder with the given Alias
  */
-void ownCloudGui::slotFolderOpenAction(Folder *f)
+void ownCloudGui::slotFolderOpenAction(const QString &alias)
 {
+    Folder *f = FolderMan::instance()->folder(alias);
     if (f) {
         qCInfo(lcApplication) << "opening local url " << f->path();
         QUrl url = QUrl::fromLocalFile(f->path());
@@ -880,8 +826,11 @@ static bool shouldShowInRecentsMenu(const SyncFileItem &item)
         && item._instruction != CSYNC_INSTRUCTION_NONE;
 }
 
-void ownCloudGui::slotUpdateProgress(Folder *folder, const ProgressInfo &progress)
+
+void ownCloudGui::slotUpdateProgress(const QString &folder, const ProgressInfo &progress)
 {
+    Q_UNUSED(folder);
+
     if (progress.status() == ProgressInfo::Discovery) {
         if (!progress._currentDiscoveredRemoteFolder.isEmpty()) {
             _actionStatus->setText(tr("Checking for changes in remote '%1'")
@@ -891,7 +840,7 @@ void ownCloudGui::slotUpdateProgress(Folder *folder, const ProgressInfo &progres
                                        .arg(progress._currentDiscoveredLocalFolder));
         }
     } else if (progress.status() == ProgressInfo::Done) {
-        QTimer::singleShot(2s, this, &ownCloudGui::slotComputeOverallSyncStatus);
+        QTimer::singleShot(2000, this, &ownCloudGui::slotComputeOverallSyncStatus);
     }
     if (progress.status() != ProgressInfo::Propagation) {
         return;
@@ -938,11 +887,14 @@ void ownCloudGui::slotUpdateProgress(Folder *folder, const ProgressInfo &progres
         QString timeStr = QTime::currentTime().toString("hh:mm");
         QString actionText = tr("%1 (%2, %3)").arg(progress._lastCompletedItem._file, kindStr, timeStr);
         QAction *action = new QAction(actionText, this);
-        QString fullPath = folder->path() + '/' + progress._lastCompletedItem._file;
-        if (QFile(fullPath).exists()) {
-            connect(action, &QAction::triggered, this, [this, fullPath] { this->slotOpenPath(fullPath); });
-        } else {
-            action->setEnabled(false);
+        Folder *f = FolderMan::instance()->folder(folder);
+        if (f) {
+            QString fullPath = f->path() + '/' + progress._lastCompletedItem._file;
+            if (QFile(fullPath).exists()) {
+                connect(action, &QAction::triggered, this, [this, fullPath] { this->slotOpenPath(fullPath); });
+            } else {
+                action->setEnabled(false);
+            }
         }
         if (_recentItemsActions.length() > 5) {
             _recentItemsActions.takeFirst()->deleteLater();
@@ -960,6 +912,7 @@ void ownCloudGui::slotUpdateProgress(Folder *folder, const ProgressInfo &progres
 void ownCloudGui::slotLogin()
 {
     if (auto account = qvariant_cast<AccountStatePtr>(sender()->property(propertyAccountC))) {
+        account->account()->resetRejectedCertificates();
         account->signIn();
     } else {
         for (const auto &a : AccountManager::instance()->accounts()) {
@@ -993,126 +946,27 @@ void ownCloudGui::slotPauseAllFolders()
 
 void ownCloudGui::runNewAccountWizard()
 {
-    if (_wizardController.isNull()) {
-        // passing the settings dialog as parent makes sure the wizard will be shown above it
-        // as the settingsDialog's lifetime spans across the entire application but the dialog will live much shorter,
-        // we have to clean it up manually when finished() is emitted
-        _wizardController = new Wizard::SetupWizardController(settingsDialog());
-
-        // while the wizard is shown, new syncs are disabled
+    if (!_wizard) {
+        _wizard = new OwncloudSetupWizard(settingsDialog());
+        connect(_wizard, &OwncloudSetupWizard::ownCloudWizardDone, _wizard, &OwncloudSetupWizard::deleteLater);
+        connect(_wizard, &OwncloudSetupWizard::ownCloudWizardDone, ocApp(), &Application::slotownCloudWizardDone);
         FolderMan::instance()->setSyncEnabled(false);
-
-        connect(_wizardController, &Wizard::SetupWizardController::finished, ocApp(),
-            [this](AccountPtr newAccount, Wizard::SyncMode syncMode) {
-                // note: while the wizard is shown, we disable the folder synchronization
-                // previously we could perform this just here, but now we have to postpone this depending on whether selective sync was chosen
-                // see also #9497
-
-                // when the dialog is closed before it has finished, there won't be a new account to set up
-                // the wizard controller signalizes this by passing a null pointer
-                if (!newAccount.isNull()) {
-                    // finally, call the slot that finalizes the setup
-                    auto accountStatePtr = ocApp()->addNewAccount(newAccount);
-
-                    // ensure we are connected and fetch the capabilities
-                    auto validator = new ConnectionValidator(accountStatePtr->account(), accountStatePtr->account().data());
-
-                    QObject::connect(validator, &ConnectionValidator::connectionResult, accountStatePtr.data(), [accountStatePtr, syncMode](ConnectionValidator::Status status, const QStringList &errors) {
-                        if (OC_ENSURE(status == ConnectionValidator::Connected)) {
-                            // saving once after adding makes sure the account is stored in the config in a working state
-                            // this is needed to ensure a consistent state in the config file upon unexpected terminations of the client
-                            // (for instance, when running from a debugger and stopping the process from there)
-                            AccountManager::instance()->save(true);
-
-                            switch (syncMode) {
-                            case Wizard::SyncMode::SyncEverything:
-                            case Wizard::SyncMode::UseVfs: {
-                                bool useVfs = syncMode == Wizard::SyncMode::UseVfs;
-                                setUpInitialSyncFolder(accountStatePtr, useVfs);
-                                FolderMan::instance()->setSyncEnabled(true);
-
-                                break;
-                            }
-                            case Wizard::SyncMode::ConfigureUsingFolderWizard: {
-                                Q_ASSERT(!accountStatePtr->account()->hasDefaultSyncRoot());
-
-                                auto *folderWizard = new FolderWizard(accountStatePtr->account(), ocApp()->gui()->settingsDialog());
-                                folderWizard->resize(ocApp()->gui()->settingsDialog()->sizeHintForChild());
-                                folderWizard->setAttribute(Qt::WA_DeleteOnClose);
-
-                                // adapted from AccountSettings::slotFolderWizardAccepted()
-                                connect(folderWizard, &QDialog::accepted, [accountStatePtr, folderWizard]() {
-                                    FolderMan *folderMan = FolderMan::instance();
-
-                                    qCInfo(lcApplication) << "Folder wizard completed";
-
-                                    bool useVfs = folderWizard->property("useVirtualFiles").toBool();
-
-                                    auto folder = folderMan->addFolderFromWizard(accountStatePtr,
-                                        folderWizard->field(QLatin1String("sourceFolder")).toString(),
-                                        folderWizard->property("targetPath").toString(),
-                                        folderWizard->davUrl(),
-                                        folderWizard->displayName(),
-                                        useVfs);
-
-                                    const auto selectiveSyncBlackList = folderWizard->property("selectiveSyncBlackList").toStringList();
-
-                                    if (!selectiveSyncBlackList.isEmpty() && OC_ENSURE(folder && useVfs)) {
-                                        folder->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncBlackList, selectiveSyncBlackList);
-
-                                        // The user already accepted the selective sync dialog. everything is in the white list
-                                        folder->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncWhiteList,
-                                            QStringList() << QLatin1String("/"));
-                                    }
-
-                                    folderMan->setSyncEnabled(true);
-                                    folderMan->scheduleAllFolders();
-                                });
-
-                                connect(folderWizard, &QDialog::rejected, []() {
-                                    qCInfo(lcApplication) << "Folder wizard cancelled";
-                                    FolderMan::instance()->setSyncEnabled(true);
-                                });
-
-                                folderWizard->open();
-                                ocApp()->gui()->raiseDialog(folderWizard);
-
-                                break;
-                            }
-                            default:
-                                Q_UNREACHABLE();
-                            }
-                        }
-                    });
-
-
-                    validator->checkServer();
-                } else {
-                    FolderMan::instance()->setSyncEnabled(true);
-                }
-
-                // make sure the wizard is cleaned up eventually
-                _wizardController->deleteLater();
-            });
-
-        // all we have to do is show the dialog...
-        _wizardController->window()->show();
-        // ... and bring it to the front
-        raiseDialog(_wizardController->window());
+        _wizard->startWizard();
     }
+    raiseDialog(settingsDialog());
 }
 
 void ownCloudGui::setPauseOnAllFoldersHelper(bool pause)
 {
-    QList<AccountStatePtr> accounts;
+    QList<AccountState *> accounts;
     if (auto account = qvariant_cast<AccountStatePtr>(sender()->property(propertyAccountC))) {
-        accounts.append(account);
+        accounts.append(account.data());
     } else {
         for (const auto &a : AccountManager::instance()->accounts()) {
-            accounts.append(a);
+            accounts.append(a.data());
         }
     }
-    for (auto *f : FolderMan::instance()->folders()) {
+    for (auto *f : FolderMan::instance()->map()) {
         if (accounts.contains(f->accountState())) {
             f->setSyncPaused(pause);
             if (pause) {
@@ -1250,7 +1104,7 @@ void ownCloudGui::slotShowShareDialog(const QString &sharePath, const QString &l
         w = _shareDialogs[localPath];
     } else {
         qCInfo(lcApplication) << "Opening share dialog" << sharePath << localPath << maxSharingPermissions;
-        w = new ShareDialog(accountState, folder->webDavUrl(), sharePath, localPath, maxSharingPermissions, startPage, settingsDialog());
+        w = new ShareDialog(accountState, sharePath, localPath, maxSharingPermissions, startPage, settingsDialog());
         w->setAttribute(Qt::WA_DeleteOnClose, true);
 
         _shareDialogs[localPath] = w;

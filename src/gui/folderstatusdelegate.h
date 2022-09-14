@@ -29,7 +29,8 @@ public:
     FolderStatusDelegate();
 
     // TODO: don't use the role but columns...
-    enum datarole { HeaderRole = Qt::UserRole + 100,
+    enum datarole { FolderAliasRole = Qt::UserRole + 100,
+        HeaderRole,
         FolderPathRole, // for a SubFolder it's the complete path
         FolderSecondPathRole,
         FolderConflictMsg,
@@ -47,13 +48,8 @@ public:
 
         AddButton, // 1 = enabled; 2 = disabled
         FolderSyncText,
-<<<<<<< HEAD
-        IsReady, // boolean
-        IsUsingSpaces // boolean
-=======
 
         IsReady // boolean
->>>>>>> refs/remotes/origin/master
     };
     void paint(QPainter *, const QStyleOptionViewItem &, const QModelIndex &) const override;
     QSize sizeHint(const QStyleOptionViewItem &, const QModelIndex &) const override;
@@ -67,7 +63,7 @@ public:
     static int rootFolderHeightWithoutErrors(const QFontMetrics &fm, const QFontMetrics &aliasFm);
 
 private:
-    static QString addFolderText(bool useSapces);
+    static QString addFolderText();
 };
 
 } // namespace OCC

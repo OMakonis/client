@@ -15,7 +15,6 @@
 #ifndef GUIUTILITY_H
 #define GUIUTILITY_H
 
-#include <QLoggingCategory>
 #include <QString>
 #include <QUrl>
 #include <QWidget>
@@ -23,9 +22,6 @@
 #include "common/pinstate.h"
 
 namespace OCC {
-
-Q_DECLARE_LOGGING_CATEGORY(lcGuiUtility)
-
 namespace Utility {
 
     /** Open an url in the browser.
@@ -54,12 +50,6 @@ namespace Utility {
     QString vfsFreeSpaceActionText();
 
     QIcon getCoreIcon(const QString &icon_name);
-
-    void tweakUIStyle();
-
-    void startShellIntegration();
-
-    QString socketApiSocketPath();
 
 #ifdef Q_OS_WIN
     // utility thread that takes care of proper Windows logout handling

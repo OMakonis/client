@@ -28,6 +28,7 @@
 #include "activitywidget.h"
 #include "accountmanager.h"
 #include "protocolwidget.h"
+#include "owncloudsetupwizard.h"
 
 #include <QImage>
 #include <QLabel>
@@ -251,10 +252,10 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     connect(AccountManager::instance(), &AccountManager::accountRemoved,
         this, &SettingsDialog::accountRemoved);
     for (const auto &ai : AccountManager::instance()->accounts()) {
-        accountAdded(ai);
+        accountAdded(ai.data());
     }
 
-    QTimer::singleShot(0, this, &SettingsDialog::showFirstPage);
+    QTimer::singleShot(1, this, &SettingsDialog::showFirstPage);
 
     connect(_ui->hideButton, &QPushButton::clicked, this, &SettingsDialog::hide);
 
@@ -353,7 +354,7 @@ void SettingsDialog::showIssuesList()
     _activitySettings->slotShowIssuesTab();
 }
 
-void SettingsDialog::accountAdded(AccountStatePtr s)
+void SettingsDialog::accountAdded(AccountState *s)
 {
     bool brandingSingleAccount = !Theme::instance()->multiAccount();
 
@@ -390,7 +391,7 @@ void SettingsDialog::accountAdded(AccountStatePtr s)
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
 
     // Refresh immediatly when getting online
-    connect(s.data(), &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
+    connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
 
     slotRefreshActivity(s);
 }
@@ -422,14 +423,14 @@ void SettingsDialog::slotAccountDisplayNameChanged()
     }
 }
 
-void SettingsDialog::accountRemoved(AccountStatePtr s)
+void SettingsDialog::accountRemoved(const AccountStatePtr &s)
 {
     for (auto it = _actionGroupWidgets.begin(); it != _actionGroupWidgets.end(); ++it) {
         auto as = qobject_cast<AccountSettings *>(*it);
         if (!as) {
             continue;
         }
-        if (as->accountsState() == s) {
+        if (as->accountsState() == s.data()) {
             _ui->toolBar->removeAction(it.key());
 
             if (_ui->stack->currentWidget() == it.value()) {
@@ -472,11 +473,10 @@ QAction *SettingsDialog::createActionWithIcon(const QString &icon, const QString
 
 void SettingsDialog::slotRefreshActivityAccountStateSender()
 {
-    AccountStatePtr accountState(qobject_cast<AccountState *>(sender()));
-    slotRefreshActivity(accountState);
+    slotRefreshActivity(qobject_cast<AccountState*>(sender()));
 }
 
-void SettingsDialog::slotRefreshActivity(AccountStatePtr accountState)
+void SettingsDialog::slotRefreshActivity(AccountState *accountState)
 {
     if (accountState) {
         _activitySettings->slotRefresh(accountState);

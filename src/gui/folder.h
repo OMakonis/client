@@ -17,12 +17,11 @@
 #ifndef MIRALL_FOLDER_H
 #define MIRALL_FOLDER_H
 
-#include "accountstate.h"
+#include "syncresult.h"
+#include "progressdispatcher.h"
 #include "common/syncjournaldb.h"
 #include "networkjobs.h"
-#include "progressdispatcher.h"
 #include "syncoptions.h"
-#include "syncresult.h"
 
 #include <QDateTime>
 #include <QObject>
@@ -40,6 +39,7 @@ namespace OCC {
 
 class Vfs;
 class SyncEngine;
+class AccountState;
 class SyncRunFileLog;
 class FolderWatcher;
 class LocalDiscoveryTracker;
@@ -51,18 +51,24 @@ class LocalDiscoveryTracker;
 class FolderDefinition
 {
 public:
-    static auto createNewFolderDefinition(const QUrl &davUrl, const QString &displayName = {})
+    FolderDefinition()
+        : paused(false)
+        , ignoreHiddenFiles(true)
     {
-        return FolderDefinition(QUuid::createUuid().toByteArray(QUuid::WithoutBraces), davUrl, displayName);
     }
 
+    /// The name of the folder in the ui and internally
+    QString alias;
+    /// path on local machine (always trailing /)
+    QString localPath;
     /// path to the journal, usually relative to localPath
     QString journalPath;
-
+    /// path on remote (usually no trailing /, exception "/")
+    QString targetPath;
     /// whether the folder is paused
-    bool paused = false;
+    bool paused;
     /// whether the folder syncs hidden files
-    bool ignoreHiddenFiles = true;
+    bool ignoreHiddenFiles;
     /// Which virtual files setting the folder uses
     Vfs::Mode virtualFilesMode = Vfs::Off;
     /// The CLSID where this folder appears in registry for the Explorer navigation pane entry.
@@ -75,7 +81,8 @@ public:
     static void save(QSettings &settings, const FolderDefinition &folder);
 
     /// Reads a folder definition from the current settings group.
-    static FolderDefinition load(QSettings &settings, const QByteArray &id);
+    static bool load(QSettings &settings, const QString &alias,
+        FolderDefinition *folder);
 
     /** The highest version in the settings that load() can read
      *
@@ -88,47 +95,14 @@ public:
     static int maxSettingsVersion() { return 4; }
 
     /// Ensure / as separator and trailing /.
-    void setLocalPath(const QString &path);
+    static QString prepareLocalPath(const QString &path);
 
     /// Remove ending /, then ensure starting '/': so "/foo/bar" and "/".
-    void setTargetPath(const QString &path);
+    static QString prepareTargetPath(const QString &path);
 
     /// journalPath relative to localPath.
     QString absoluteJournalPath() const;
 
-<<<<<<< HEAD
-    QString localPath() const
-    {
-        return _localPath;
-    }
-    QString targetPath() const
-    {
-        return _targetPath;
-    }
-    const QUrl &webDavUrl() const
-    {
-        Q_ASSERT(_webDavUrl.isValid());
-        return _webDavUrl;
-    }
-
-    const QByteArray &id() const;
-
-    QString displayName() const;
-
-private:
-    FolderDefinition(const QByteArray &id, const QUrl &davUrl, const QString &displayName);
-
-    QUrl _webDavUrl;
-    /// For legacy reasons this can be a string, new folder objects will use a uuid
-    QByteArray _id;
-    QString _displayName;
-    /// path on local machine (always trailing /)
-    QString _localPath;
-    /// path on remote (usually no trailing /, exception "/")
-    QString _targetPath;
-
-    friend class FolderMan;
-=======
     /**
      * The folder is deployed by an admin
      * We will hide the remove option and the disable/enable vfs option.
@@ -137,7 +111,6 @@ private:
 
 private:
     bool _deployed = false;
->>>>>>> refs/remotes/origin/master
 };
 
 /**
@@ -157,17 +130,19 @@ public:
 
     /** Create a new Folder
      */
-    Folder(const FolderDefinition &definition, AccountStatePtr accountState, std::unique_ptr<Vfs> vfs, QObject *parent = nullptr);
+    Folder(const FolderDefinition &definition, AccountState *accountState, std::unique_ptr<Vfs> vfs, QObject *parent = nullptr);
 
     ~Folder() override;
     /**
      * The account the folder is configured on.
      */
-    AccountStatePtr accountState() const { return _accountState; }
+    AccountState *accountState() const { return _accountState.data(); }
 
-    QByteArray id() const;
-
-    QString displayName() const;
+    /**
+     * alias or nickname
+     */
+    QString alias() const;
+    QString shortGuiRemotePathOrAppName() const; // since 2.0 we don't want to show aliases anymore, show the path instead
 
     /**
      * short local path to display on the GUI  (native separators)
@@ -191,11 +166,6 @@ public:
      * remote folder path, usually without trailing /, exception "/"
      */
     QString remotePath() const;
-
-    /**
-     * The full remote webdav url
-     */
-    QUrl webDavUrl() const;
 
     /**
      * remote folder path, always with a trailing /
@@ -350,19 +320,10 @@ public:
     bool supportsSelectiveSync() const;
 
     /**
-<<<<<<< HEAD
-     * Whether to register the parent folder of our sync root in the explorer
-     * The default behaviour is to register alls spaces in a common dir in the home folder
-     * in that case we only display that common dir in the Windows side bar.
-     * With the legacy behaviour we only have one dir which we will register with Windows
-     */
-    bool groupInSidebar() const;
-=======
      * The folder is deployed by an admin
      * We will hide the remove option and the disable/enable vfs option.
      */
     bool isDeployed() const;
->>>>>>> refs/remotes/origin/master
 
 signals:
     void syncStateChange();
@@ -471,7 +432,7 @@ private slots:
      * This is pretty awkward, but IssuesWidget just keeps better track
      * of conflicts across partial local discovery.
      */
-    void slotFolderConflicts(Folder *folder, const QStringList &conflictPaths);
+    void slotFolderConflicts(const QString &folder, const QStringList &conflictPaths);
 
     /** Warn users if they create a file or folder that is selective-sync excluded */
     void warnOnNewExcludedItem(const SyncJournalFileRecord &record, QStringView path);
@@ -485,7 +446,7 @@ private:
 
     bool checkLocalPath();
 
-    SyncOptions loadSyncOptions();
+    void setSyncOptions();
 
     enum LogStatus {
         LogStatusRemove,

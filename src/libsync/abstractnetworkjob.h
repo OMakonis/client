@@ -22,16 +22,13 @@
 
 #include "owncloudlib.h"
 
-#include <QDateTime>
-#include <QElapsedTimer>
-#include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QObject>
+#include <QNetworkRequest>
+#include <QNetworkReply>
 #include <QPointer>
+#include <QElapsedTimer>
+#include <QDateTime>
 #include <QTimer>
-#include <QUrlQuery>
-
-#include <chrono>
 
 class QUrl;
 
@@ -40,7 +37,7 @@ OWNCLOUDSYNC_EXPORT QDebug operator<<(QDebug debug, const OCC::AbstractNetworkJo
 
 namespace OCC {
 
-using HeaderMap = QMap<QByteArray, QByteArray>;
+class AbstractSslErrorHandler;
 
 /**
  * @brief The AbstractNetworkJob class
@@ -50,23 +47,17 @@ class OWNCLOUDSYNC_EXPORT AbstractNetworkJob : public QObject
 {
     Q_OBJECT
 public:
-    explicit AbstractNetworkJob(AccountPtr account, const QUrl &baseUrl, const QString &path, QObject *parent = nullptr);
+    explicit AbstractNetworkJob(AccountPtr account, const QString &path, QObject *parent = nullptr);
     ~AbstractNetworkJob() override;
 
     virtual void start();
 
     AccountPtr account() const { return _account; }
+
+    void setPath(const QString &path);
     QString path() const { return _path; }
 
-    /*
-     * A base Url, for most of the jobs this will be the webdav entry point.
-     */
-    QUrl baseUrl() const;
-
-    /*
-     * The absolute url: baseUrl() + path() + query()
-     */
-    QUrl url() const;
+    QUrl url() const { return _request.url(); }
 
     QNetworkReply *reply() const;
 
@@ -77,9 +68,8 @@ public:
     /* Content of the X-Request-ID header. (Only set after the request is sent) */
     QByteArray requestId();
 
-    auto timeoutSec() const { return _timeout; }
+    qint64 timeoutMsec() const { return _timer.interval(); }
     bool timedOut() const { return _timedout; }
-    bool aborted() const { return _aborted; }
 
     void setPriority(QNetworkRequest::Priority priority);
     QNetworkRequest::Priority priority() const;
@@ -105,15 +95,9 @@ public:
     /** Abort the job due to an error */
     void abort();
 
-    /** static variable the HTTP timeout. If set to 0, the default will be used
+    /** static variable the HTTP timeout (in seconds). If set to 0, the default will be used
      */
-    static std::chrono::seconds httpTimeout;
-
-    /**
-     * The default 5 minutes timeout if none is specified by the config.
-     * Qt's default would be 30s.
-     */
-    static constexpr std::chrono::seconds DefaultHttpTimeout { 5 * 60 };
+    static int httpTimeout;
 
     /** whether or noth this job should be restarted after authentication */
     bool  isAuthenticationJob() const;
@@ -125,13 +109,16 @@ public:
 
     virtual bool needsRetry() const;
 
-    void setTimeout(const std::chrono::seconds sec);
+public slots:
+    void setTimeout(qint64 msec);
+    void resetTimeout();
 signals:
     /** Emitted on network error.
      *
      * \a reply is never null
      */
     void networkError(QNetworkReply *reply);
+    void networkActivity();
 
 protected:
     /** Initiate a network request, returning a QNetworkReply.
@@ -140,9 +127,20 @@ protected:
      *
      * Takes ownership of the requestBody (to allow redirects).
      */
-    void sendRequest(const QByteArray &verb,
+    void sendRequest(const QByteArray &verb, const QUrl &url,
         const QNetworkRequest &req = QNetworkRequest(),
         QIODevice *requestBody = nullptr);
+
+    void setReply(QNetworkReply *reply);
+
+    /** Makes this job drive a pre-made QNetworkReply
+     *
+     * This reply cannot have a QIODevice request body because we can't get
+     * at it and thus not resend it in case of redirects.
+     */
+    void adoptRequest(QNetworkReply *reply);
+
+    void setupConnections(QNetworkReply *reply);
 
     /** Can be used by derived classes to set up the network reply.
      *
@@ -152,49 +150,45 @@ protected:
      */
     virtual void newReplyHook(QNetworkReply *) {}
 
+    /// Creates a url for the account from a relative path
+    QUrl makeAccountUrl(const QString &relativePath) const;
+
+    /// Like makeAccountUrl() but uses the account's dav base path
+    QUrl makeDavUrl(const QString &relativePath) const;
+
     /** Called at the end of QNetworkReply::finished processing.
      *
      * Returning true triggers a deleteLater() of this job.
      */
     virtual bool finished() = 0;
 
+    /** Called on timeout.
+     *
+     * The default implementation aborts the reply.
+     */
+    virtual void onTimedOut();
+
     QByteArray _responseTimestamp;
+    bool _timedout; // set to true when the timeout slot is received
 
     QString replyStatusString();
 
-    /*
-     * The url query appended to the url.
-     * The query will not be set as part of the body.
-     * The query must be fully encoded.
-     */
-    void setQuery(const QUrlQuery &query);
-    QUrlQuery query() const;
+private slots:
+    void slotFinished();
+    void slotTimeout();
 
+protected:
     AccountPtr _account;
 
 private:
-    /** Makes this job drive a pre-made QNetworkReply
-     *
-     * This reply cannot have a QIODevice request body because we can't get
-     * at it and thus not resend it in case of redirects.
-     */
-    void adoptRequest(QPointer<QNetworkReply> reply);
-    void slotFinished();
-
-    const QUrl _baseUrl;
-    const QString _path;
-
-    QUrlQuery _query;
-
-    std::chrono::seconds _timeout = httpTimeout;
-    bool _timedout = false; // set to true when the timeout slot is received
-    bool _aborted = false;
-    bool _finished = false;
-    bool _ignoreCredentialFailure = false;
-
+    QNetworkReply *addTimer(QNetworkReply *reply);
+    bool _ignoreCredentialFailure;
     QNetworkRequest _request;
     QByteArray _verb;
     QPointer<QNetworkReply> _reply; // (QPointer because the NetworkManager may be destroyed before the jobs at exit)
+    QString _path;
+    QTimer _timer;
+    int _http2ResendCount = 0;
 
     // Set by the xyzRequest() functions and needed to be able to redirect
     // requests, should it be required.
@@ -208,6 +202,19 @@ private:
     QNetworkRequest::Priority _priority = QNetworkRequest::NormalPriority;
 
     friend QDebug(::operator<<)(QDebug debug, const AbstractNetworkJob *job);
+};
+
+/**
+ * @brief Internal Helper class
+ */
+class NetworkJobTimeoutPauser
+{
+public:
+    NetworkJobTimeoutPauser(QNetworkReply *reply);
+    ~NetworkJobTimeoutPauser();
+
+private:
+    QPointer<QTimer> _timer;
 };
 
 

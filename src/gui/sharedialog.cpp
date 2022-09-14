@@ -33,14 +33,11 @@
 #include <QFrame>
 #include <QRegularExpression>
 
-using namespace std::chrono_literals;
-
 namespace OCC {
 
 static const int thumbnailSize = 40;
 
-ShareDialog::ShareDialog(AccountStatePtr accountState,
-    const QUrl &baseUrl,
+ShareDialog::ShareDialog(QPointer<AccountState> accountState,
     const QString &sharePath,
     const QString &localPath,
     SharePermissions maxSharingPermissions,
@@ -56,7 +53,6 @@ ShareDialog::ShareDialog(AccountStatePtr accountState,
     , _linkWidget(nullptr)
     , _userGroupWidget(nullptr)
     , _progressIndicator(nullptr)
-    , _baseUrl(baseUrl)
 {
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     setAttribute(Qt::WA_DeleteOnClose);
@@ -77,9 +73,9 @@ ShareDialog::ShareDialog(AccountStatePtr accountState,
     // Set icon
     QFileInfo f_info(_localPath);
     QFileIconProvider icon_provider;
-    const QIcon icon = icon_provider.icon(f_info);
-    if (!icon.isNull()) {
-        auto pixmap = icon.pixmap(thumbnailSize, thumbnailSize);
+    QIcon icon = icon_provider.icon(f_info);
+    auto pixmap = icon.pixmap(thumbnailSize, thumbnailSize);
+    if (pixmap.width() > 0) {
         _ui->label_icon->setPixmap(pixmap);
     } else {
         _ui->label_icon->hide();
@@ -130,10 +126,10 @@ ShareDialog::ShareDialog(AccountStatePtr accountState,
 
     // Server versions >= 9.1 support the "share-permissions" property
     // older versions will just return share-permissions: ""
-    auto job = new PropfindJob(accountState->account(), _baseUrl, _sharePath);
+    auto job = new PropfindJob(accountState->account(), _sharePath);
     job->setProperties({ QByteArrayLiteral("http://open-collaboration-services.org/ns:share-permissions"),
         QByteArrayLiteral("http://owncloud.org/ns:privatelink") });
-    job->setTimeout(10s);
+    job->setTimeout(10 * 1000);
     connect(job, &PropfindJob::result, this, &ShareDialog::slotPropfindReceived);
     connect(job, &PropfindJob::finishedWithError, this, &ShareDialog::slotPropfindError);
     job->start();
@@ -190,7 +186,12 @@ void ShareDialog::showSharingUi()
         return;
     }
 
-    if (theme->userGroupSharing()) {
+    // We only do user/group sharing from 8.2.0
+    bool userGroupSharing =
+        theme->userGroupSharing()
+        && _accountState->account()->serverVersionInt() >= Account::makeServerVersion(8, 2, 0);
+
+    if (userGroupSharing) {
         _userGroupWidget = new ShareUserGroupWidget(_accountState->account(), _sharePath, _localPath, _maxSharingPermissions, _privateLinkUrl, this);
         _ui->shareWidgets->addTab(_userGroupWidget, tr("Users and Groups"));
         _userGroupWidget->getShares();
@@ -212,17 +213,16 @@ QSize ShareDialog::minimumSizeHint() const
     return ocApp()->gui()->settingsDialog()->sizeHintForChild();
 }
 
-void ShareDialog::slotThumbnailFetched(const int &statusCode, const QPixmap &reply)
+void ShareDialog::slotThumbnailFetched(const int &statusCode, const QByteArray &reply)
 {
     if (statusCode != 200) {
         qCWarning(lcSharing) << "Thumbnail status code: " << statusCode;
         return;
     }
-    if (reply.isNull()) {
-        qCWarning(lcSharing) << "Invalid pixmap";
-        return;
-    }
-    const auto p = reply.scaledToHeight(thumbnailSize, Qt::SmoothTransformation);
+
+    QPixmap p;
+    p.loadFromData(reply, "PNG");
+    p = p.scaledToHeight(thumbnailSize, Qt::SmoothTransformation);
     _ui->label_icon->setPixmap(p);
     _ui->label_icon->show();
 }

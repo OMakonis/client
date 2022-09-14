@@ -62,13 +62,13 @@ FolderStatusModel::~FolderStatusModel()
 
 static bool sortByFolderHeader(const FolderStatusModel::SubFolderInfo &lhs, const FolderStatusModel::SubFolderInfo &rhs)
 {
-    return QString::compare(lhs._folder->displayName(),
-               rhs._folder->displayName(),
+    return QString::compare(lhs._folder->shortGuiRemotePathOrAppName(),
+               rhs._folder->shortGuiRemotePathOrAppName(),
                Qt::CaseInsensitive)
         < 0;
 }
 
-void FolderStatusModel::setAccountState(AccountStatePtr accountState)
+void FolderStatusModel::setAccountState(const AccountState *accountState)
 {
     beginResetModel();
     _dirty = false;
@@ -80,15 +80,14 @@ void FolderStatusModel::setAccountState(AccountStatePtr accountState)
     connect(FolderMan::instance(), &FolderMan::scheduleQueueChanged,
         this, &FolderStatusModel::slotFolderScheduleQueueChanged, Qt::UniqueConnection);
 
-    for (const auto &f : FolderMan::instance()->folders()) {
+    for (const auto &f : FolderMan::instance()->map()) {
         if (!accountState)
             break;
         if (f->accountState() != accountState)
             continue;
         SubFolderInfo info;
-        // the name is not actually used with the root element
-        info._name = QLatin1Char('/');
-        info._path = QLatin1Char('/');
+        info._name = f->alias();
+        info._path = "/";
         info._folder = f;
         info._checked = Qt::PartiallyChecked;
         _folders << info;
@@ -116,7 +115,7 @@ void FolderStatusModel::setAccountState(AccountStatePtr accountState)
 Qt::ItemFlags FolderStatusModel::flags(const QModelIndex &index) const
 {
     if (!_accountState) {
-        return Qt::NoItemFlags;
+        return nullptr;
     }
 
     // Always enable the item. If it isn't enabled, it cannot be in the selection model, so all
@@ -151,10 +150,6 @@ QVariant FolderStatusModel::data(const QModelIndex &index, int role) const
     if (role == Qt::EditRole)
         return QVariant();
 
-    // independent of the index
-    if (role == FolderStatusDelegate::IsUsingSpaces) {
-        return _accountState->account()->hasCapabilities() && _accountState->account()->capabilities().spacesSupport().enabled;
-    }
     switch (classify(index)) {
     case AddButton: {
         if (role == FolderStatusDelegate::AddButton) {
@@ -163,7 +158,7 @@ QVariant FolderStatusModel::data(const QModelIndex &index, int role) const
             if (!_accountState->isConnected()) {
                 return tr("You need to be connected to add a folder");
             }
-            return _accountState->account()->capabilities().spacesSupport().enabled ? tr("Click this button to add a space.") : tr("Click this button to add a folder to synchronize.");
+            return tr("Click this button to add a folder to synchronize.");
         }
         return QVariant();
     }
@@ -249,7 +244,9 @@ QVariant FolderStatusModel::data(const QModelIndex &index, int role) const
     case FolderStatusDelegate::SyncRunning:
         return f->syncResult().status() == SyncResult::SyncRunning;
     case FolderStatusDelegate::HeaderRole:
-        return f->displayName();
+        return f->shortGuiRemotePathOrAppName();
+    case FolderStatusDelegate::FolderAliasRole:
+        return f->alias();
     case FolderStatusDelegate::FolderSyncPaused:
         return f->syncPaused();
     case FolderStatusDelegate::FolderAccountConnected:
@@ -596,10 +593,12 @@ void FolderStatusModel::fetchMore(const QModelIndex &parent)
     if (info->_path != QLatin1String("/")) {
         path += info->_path;
     }
-    LsColJob *job = new LsColJob(_accountState->account(), info->_folder->webDavUrl(), path, this);
+    LsColJob *job = new LsColJob(_accountState->account(), path, this);
     info->_fetchingJob = job;
-    job->setProperties({ QByteArrayLiteral("resourcetype"), QByteArrayLiteral("http://owncloud.org/ns:size"), QByteArrayLiteral("http://owncloud.org/ns:permissions") });
-    job->setTimeout(60s);
+    job->setProperties(QList<QByteArray>() << "resourcetype"
+                                           << "http://owncloud.org/ns:size"
+                                           << "http://owncloud.org/ns:permissions");
+    job->setTimeout(60 * 1000);
     connect(job, &LsColJob::directoryListingSubfolders,
         this, &FolderStatusModel::slotUpdateDirectories);
     connect(job, &LsColJob::finishedWithError,
@@ -614,7 +613,7 @@ void FolderStatusModel::fetchMore(const QModelIndex &parent)
 
     // Show 'fetching data...' hint after a while.
     _fetchingItems[persistentIndex].start();
-    QTimer::singleShot(1s, this, &FolderStatusModel::slotShowFetchProgress);
+    QTimer::singleShot(1000, this, &FolderStatusModel::slotShowFetchProgress);
 }
 
 void FolderStatusModel::resetAndFetch(const QModelIndex &parent)
@@ -1095,14 +1094,18 @@ void FolderStatusModel::slotFolderSyncStateChange(Folder *f)
     } else if (state == SyncResult::NotYetStarted) {
         FolderMan *folderMan = FolderMan::instance();
         int pos = folderMan->scheduleQueue().indexOf(f);
-        for (auto other : folderMan->folders()) {
+        for (auto other : folderMan->map()) {
             if (other != f && other->isSyncRunning())
                 pos += 1;
         }
-        if (pos > 0) {
-            pi._overallSyncString = tr("Waiting for %n other folder(s)...", "", pos);
+        QString message;
+        if (pos <= 0) {
+            message = tr("Waiting...");
+        } else {
+            message = tr("Waiting for %n other folder(s)...", "", pos);
         }
         pi = SubFolderInfo::Progress();
+        pi._overallSyncString = message;
     } else if (state == SyncResult::SyncPrepare) {
         pi = SubFolderInfo::Progress();
         pi._overallSyncString = tr("Preparing to sync...");
@@ -1126,7 +1129,7 @@ void FolderStatusModel::slotFolderSyncStateChange(Folder *f)
 void FolderStatusModel::slotFolderScheduleQueueChanged()
 {
     // Update messages on waiting folders.
-    for (auto *f : FolderMan::instance()->folders()) {
+    for (auto *f : FolderMan::instance()->map()) {
         slotFolderSyncStateChange(f);
     }
 }

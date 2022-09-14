@@ -42,7 +42,7 @@ class FolderStatusModel : public QAbstractItemModel
 public:
     FolderStatusModel(QObject *parent = nullptr);
     ~FolderStatusModel() override;
-    void setAccountState(AccountStatePtr accountState);
+    void setAccountState(const AccountState *accountState);
 
     Qt::ItemFlags flags(const QModelIndex &) const override;
     QVariant data(const QModelIndex &index, int role) const override;
@@ -158,15 +158,11 @@ private slots:
 private:
     QStringList createBlackList(const OCC::FolderStatusModel::SubFolderInfo &root,
         const QStringList &oldBlackList) const;
-<<<<<<< HEAD
-    AccountStatePtr _accountState;
-=======
 
     void computeProgress(const ProgressInfo &progress, SubFolderInfo::Progress *pi);
     int indexOf(Folder *f) const;
 
     const AccountState *_accountState;
->>>>>>> refs/remotes/origin/master
     bool _dirty; // If the selective sync checkboxes were changed
     QVector<SubFolderInfo> _folders;
 

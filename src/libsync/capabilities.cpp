@@ -17,8 +17,6 @@
 #include <QVariantMap>
 #include <QDebug>
 
-using namespace std::chrono;
-
 namespace OCC {
 
 
@@ -27,13 +25,7 @@ Capabilities::Capabilities(const QVariantMap &capabilities)
     , _fileSharingCapabilities(_capabilities.value(QStringLiteral("files_sharing")).toMap())
     , _fileSharingPublicCapabilities(_fileSharingCapabilities.value(QStringLiteral("public"), {}).toMap())
     , _tusSupport(_capabilities.value(QStringLiteral("files")).toMap().value(QStringLiteral("tus_support")).toMap())
-    , _spaces(_capabilities.value(QStringLiteral("spaces")).toMap())
 {
-}
-
-QVariantMap Capabilities::raw() const
-{
-    return _capabilities;
 }
 
 bool Capabilities::shareAPI() const
@@ -113,7 +105,7 @@ int Capabilities::defaultPermissions() const
 
 std::chrono::seconds Capabilities::remotePollInterval() const
 {
-    return duration_cast<seconds>(milliseconds(_capabilities.value(QStringLiteral("core")).toMap().value(QStringLiteral("pollinterval")).toInt()));
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::milliseconds(_capabilities.value(QStringLiteral("core")).toMap().value(QStringLiteral("pollinterval")).toInt()));
 }
 
 bool Capabilities::notificationsAvailable() const
@@ -185,12 +177,6 @@ const TusSupport &Capabilities::tusSupport() const
     return _tusSupport;
 }
 
-
-const SpaceSupport &Capabilities::spacesSupport() const
-{
-    return _spaces;
-}
-
 bool Capabilities::chunkingParallelUploadDisabled() const
 {
     return _capabilities.value(QStringLiteral("dav")).toMap().value(QStringLiteral("chunkingParallelUploadDisabled")).toBool();
@@ -255,8 +241,7 @@ TusSupport::TusSupport(const QVariantMap &tus_support)
     }
     version = QVersionNumber::fromString(tus_support.value(QStringLiteral("version")).toString());
     resumable = QVersionNumber::fromString(tus_support.value(QStringLiteral("resumable")).toString());
-
-    extensions = tus_support.value(QStringLiteral("extension")).toString().split(QLatin1Char(','), Qt::SkipEmptyParts);
+    extensions = tus_support.value(QStringLiteral("extension")).toString().split(QLatin1Char(','), QString::SkipEmptyParts);
     max_chunk_size = tus_support.value(QStringLiteral("max_chunk_size")).value<quint64>();
     http_method_override = tus_support.value(QStringLiteral("http_method_override")).toString();
 }
@@ -265,20 +250,5 @@ bool TusSupport::isValid() const
 {
     return !version.isNull();
 }
-
-SpaceSupport::SpaceSupport(const QVariantMap &spaces_support)
-{
-    if (spaces_support.isEmpty()) {
-        return;
-    }
-    enabled = spaces_support.value(QLatin1String("enabled")).toBool();
-    version = QVersionNumber::fromString(spaces_support.value(QLatin1String("version")).toString());
-}
-
-bool SpaceSupport::isValid() const
-{
-    return !version.isNull();
-}
-
 
 } // namespace OCC

@@ -40,8 +40,7 @@ class ShareDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit ShareDialog(AccountStatePtr accountState,
-        const QUrl &baseUrl,
+    explicit ShareDialog(QPointer<AccountState> accountState,
         const QString &sharePath,
         const QString &localPath,
         SharePermissions maxSharingPermissions,
@@ -54,14 +53,14 @@ public:
 private slots:
     void slotPropfindReceived(const QMap<QString, QString> &result);
     void slotPropfindError();
-    void slotThumbnailFetched(const int &statusCode, const QPixmap &reply);
+    void slotThumbnailFetched(const int &statusCode, const QByteArray &reply);
     void slotAccountStateChanged(int state);
 
 private:
     void showSharingUi();
 
     Ui::ShareDialog *_ui;
-    AccountStatePtr _accountState;
+    QPointer<AccountState> _accountState;
     QString _sharePath;
     QString _localPath;
     SharePermissions _maxSharingPermissions;
@@ -72,7 +71,6 @@ private:
     ShareLinkWidget *_linkWidget;
     ShareUserGroupWidget *_userGroupWidget;
     QProgressIndicator *_progressIndicator;
-    const QUrl _baseUrl;
 };
 }
 

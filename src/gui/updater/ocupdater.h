@@ -16,10 +16,9 @@
 #define OCUPDATER_H
 
 #include <QObject>
+#include <QUrl>
 #include <QTemporaryFile>
 #include <QTimer>
-#include <QUrl>
-#include <QVersionNumber>
 
 #include "updater/updateinfo.h"
 #include "updater/updater.h"
@@ -50,17 +49,17 @@ namespace OCC {
  * Simple class diagram of the updater:
  *
  *           +---------------------------+
- *     +-----+   UpdaterScheduler        +-----+------------------+
- *     |     +------------+--------------+     |                  |
- *     v                  v                    v                  v
- * +------------+ +---------------------+ +----------------+ +-----------------+
- * |NSISUpdater | |PassiveUpdateNotifier| | SparkleUpdater | | AppImageUpdater |
- * +-+----------+ +---+-----------------+ +-----+----------+ +-----------------+
- *   |                |                         |                 |
- *   |                v      +------------------+                 |
- *   |   +---------------+   v                                    |
- *   +-->|   OCUpdater   +------+                                 |
- *       +--------+------+      |<--------------------------------+
+ *     +-----+   UpdaterScheduler        +-----+
+ *     |     +------------+--------------+     |
+ *     v                  v                    v
+ * +------------+ +---------------------+ +----------------+
+ * |NSISUpdater | |PassiveUpdateNotifier| | SparkleUpdater |
+ * +-+----------+ +---+-----------------+ +-----+----------+
+ *   |                |                         |
+ *   |                v      +------------------+
+ *   |   +---------------+   v
+ *   +-->|   OCUpdater   +------+
+ *       +--------+------+      |
  *                |   Updater   |
  *                +-------------+
  */
@@ -107,8 +106,6 @@ public:
         DownloadFailed,
         DownloadTimedOut,
         UpdateOnlyAvailableThroughSystem };
-    Q_ENUM(DownloadState);
-
     explicit OCUpdater(const QUrl &url);
 
     void setUpdateUrl(const QUrl &url);
@@ -118,7 +115,7 @@ public:
     void checkForUpdate() override;
 
     QString statusString() const;
-    DownloadState downloadState() const;
+    int downloadState() const;
     void setDownloadState(DownloadState state);
 
 signals:
@@ -148,10 +145,6 @@ private slots:
     void slotTimedOut();
 
 protected:
-    static QVersionNumber previouslySkippedVersion();
-    static void setPreviouslySkippedVersion(const QVersionNumber &previouslySkippedVersion);
-    static void setPreviouslySkippedVersion(const QString &previouslySkippedVersionString);
-
     virtual void versionInfoArrived(const UpdateInfo &info) = 0;
     bool updateSucceeded() const;
     QNetworkAccessManager *qnam() const { return _accessManager; }
@@ -159,7 +152,7 @@ protected:
 
 private:
     QUrl _updateUrl;
-    DownloadState _state;
+    int _state;
     QNetworkAccessManager *_accessManager;
     QTimer *_timeoutWatchdog; /** Timer to guard the timeout of an individual network request */
     UpdateInfo _updateInfo;
@@ -176,7 +169,7 @@ public:
     explicit NSISUpdater(const QUrl &url);
     bool handleStartup() override;
 private slots:
-    void slotSetPreviouslySkippedVersion();
+    void slotSetSeenVersion();
     void slotDownloadFinished();
     void slotWriteFile();
 
@@ -187,8 +180,6 @@ private:
     void versionInfoArrived(const UpdateInfo &info) override;
     QScopedPointer<QTemporaryFile> _file;
     QString _targetFile;
-
-    friend class TestUpdater;
 };
 
 /**

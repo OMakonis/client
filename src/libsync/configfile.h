@@ -41,7 +41,6 @@ class OWNCLOUDSYNC_EXPORT ConfigFile
 public:
     static QString configPath();
     static QString configFile();
-    static QSettings makeQSettings();
     static bool exists();
 
     ConfigFile();
@@ -151,7 +150,7 @@ public:
     bool showInExplorerNavigationPane() const;
     void setShowInExplorerNavigationPane(bool show);
 
-    std::chrono::seconds timeout() const;
+    int timeout() const;
     qint64 chunkSize() const;
     qint64 maxChunkSize() const;
     qint64 minChunkSize() const;
@@ -180,8 +179,9 @@ public:
     QString clientVersionString() const;
     void setClientVersionString(const QString &version);
 
-    /**  Returns a new settings pre-set in a specific group. */
-    static std::unique_ptr<QSettings> settingsWithGroup(const QString &group);
+    /**  Returns a new settings pre-set in a specific group.  The Settings will be created
+         with the given parent. If no parent is specified, the caller must destroy the settings */
+    static std::unique_ptr<QSettings> settingsWithGroup(const QString &group, QObject *parent = nullptr);
 
     /// Add the system and user exclude file path to the ExcludedFiles instance.
     static void setupDefaultExcludeFilePaths(ExcludedFiles &excludedFiles);

@@ -17,10 +17,11 @@
  */
 
 #include "vfs.h"
-#include "common/filesystembase.h"
-#include "common/version.h"
 #include "plugin.h"
+#include "version.h"
 #include "syncjournaldb.h"
+
+#include "common/filesystembase.h"
 
 #include <QDir>
 #include <QPluginLoader>
@@ -137,18 +138,20 @@ Vfs::AvailabilityResult Vfs::availabilityInDb(const QString &folderPath)
     return AvailabilityError::NoSuchItem;
 }
 
+VfsOff::VfsOff(QObject *parent)
+    : Vfs(parent)
+{
+}
+
+VfsOff::~VfsOff() = default;
+
 static QString modeToPluginName(Vfs::Mode mode)
 {
-    switch (mode) {
-    case Vfs::Off:
-        return QStringLiteral("off");
-    case Vfs::WithSuffix:
+    if (mode == Vfs::WithSuffix)
         return QStringLiteral("suffix");
-    case Vfs::WindowsCfApi:
+    if (mode == Vfs::WindowsCfApi)
         return QStringLiteral("win");
-    default:
-        Q_UNREACHABLE();
-    }
+    return QString();
 }
 
 Q_LOGGING_CATEGORY(lcPlugin, "plugins", QtInfoMsg)
@@ -156,6 +159,8 @@ Q_LOGGING_CATEGORY(lcPlugin, "plugins", QtInfoMsg)
 bool OCC::isVfsPluginAvailable(Vfs::Mode mode)
 {
     // TODO: cache plugins available?
+    if (mode == Vfs::Off)
+        return true;
     auto name = modeToPluginName(mode);
     if (name.isEmpty())
         return false;
@@ -177,7 +182,7 @@ bool OCC::isVfsPluginAvailable(Vfs::Mode mode)
         qCWarning(lcPlugin) << "Plugin has wrong type" << loader.fileName() << metadata[QStringLiteral("type")];
         return false;
     }
-    if (metadata[QStringLiteral("version")].toString() != OCC::Version::version().toString()) {
+    if (metadata[QStringLiteral("version")].toString() != QStringLiteral(MIRALL_VERSION_STRING)) {
         qCWarning(lcPlugin) << "Plugin has wrong version" << loader.fileName() << metadata[QStringLiteral("version")];
         return false;
     }
@@ -198,14 +203,15 @@ Vfs::Mode OCC::bestAvailableVfsMode()
         return Vfs::WindowsCfApi;
     } else if (isVfsPluginAvailable(Vfs::WithSuffix)) {
         return Vfs::WithSuffix;
-    } else if (isVfsPluginAvailable(Vfs::Off)) {
-        return Vfs::Off;
     }
-    Q_UNREACHABLE();
+    return Vfs::Off;
 }
 
 std::unique_ptr<Vfs> OCC::createVfsFromPlugin(Vfs::Mode mode)
 {
+    if (mode == Vfs::Off)
+        return std::unique_ptr<Vfs>(new VfsOff);
+
     auto name = modeToPluginName(mode);
     if (name.isEmpty())
         return nullptr;

@@ -27,7 +27,7 @@ QString DummyCredentials::user() const
     return _user;
 }
 
-AccessManager *DummyCredentials::createAM() const
+QNetworkAccessManager *DummyCredentials::createQNAM() const
 {
     return new AccessManager;
 }

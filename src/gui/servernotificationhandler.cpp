@@ -15,7 +15,7 @@
 #include "servernotificationhandler.h"
 #include "accountstate.h"
 #include "capabilities.h"
-#include "networkjobs/jsonjob.h"
+#include "networkjobs.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -31,7 +31,7 @@ ServerNotificationHandler::ServerNotificationHandler(QObject *parent)
 {
 }
 
-void ServerNotificationHandler::slotFetchNotifications(AccountStatePtr ptr)
+void ServerNotificationHandler::slotFetchNotifications(AccountState *ptr)
 {
     // check connectivity and credentials
     if (!(ptr && ptr->isConnected() && ptr->account() && ptr->account()->credentials() && ptr->account()->credentials()->ready())) {
@@ -49,24 +49,24 @@ void ServerNotificationHandler::slotFetchNotifications(AccountStatePtr ptr)
     }
 
     // if the previous notification job has finished, start next.
-    auto *job = new JsonApiJob(ptr->account(), notificationsPath, {}, {}, this);
-    QObject::connect(job, &JsonApiJob::finishedSignal,
-        this, [job, ptr, this] {
-            slotNotificationsReceived(job, ptr);
-            deleteLater();
-        });
+    _notificationJob = new JsonApiJob(ptr->account(), notificationsPath, this);
+    QObject::connect(_notificationJob.data(), &JsonApiJob::jsonReceived,
+        this, &ServerNotificationHandler::slotNotificationsReceived);
+    _notificationJob->setProperty("AccountStatePtr", QVariant::fromValue<AccountState *>(ptr));
 
-    job->start();
+    _notificationJob->start();
 }
 
-void ServerNotificationHandler::slotNotificationsReceived(JsonApiJob *job, const AccountStatePtr &accountState)
+void ServerNotificationHandler::slotNotificationsReceived(const QJsonDocument &json, int statusCode)
 {
-    if (job->reply()->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200) {
-        qCWarning(lcServerNotification) << "Notifications failed with status code " << job->ocsStatus();
+    if (statusCode != 200) {
+        qCWarning(lcServerNotification) << "Notifications failed with status code " << statusCode;
+        deleteLater();
         return;
     }
 
-    const auto &notifies = job->data().value(QLatin1String("ocs")).toObject().value(QLatin1String("data")).toArray();
+    const auto &notifies = json.object().value(QLatin1String("ocs")).toObject().value(QLatin1String("data")).toArray();
+    AccountState *ai = qvariant_cast<AccountState *>(sender()->property("AccountStatePtr"));
 
     ActivityList list;
     list.reserve(notifies.size());
@@ -91,7 +91,7 @@ void ServerNotificationHandler::slotNotificationsReceived(JsonApiJob *job, const
         // https://github.com/owncloud/notifications/blob/master/docs/ocs-endpoint-v1.md#deleting-a-notification-for-a-user
         ActivityLink al;
         al._label = tr("Dismiss");
-        al._link = Utility::concatUrlPath(accountState->account()->url(), notificationsPath + "/" + QString::number(id)).toString();
+        al._link = Utility::concatUrlPath(ai->account()->url(), notificationsPath + "/" + QString::number(id)).toString();
         al._verb  = "DELETE";
         al._isPrimary = false;
         linkList.append(al);
@@ -99,7 +99,7 @@ void ServerNotificationHandler::slotNotificationsReceived(JsonApiJob *job, const
         list.append(Activity {
             Activity::NotificationType,
             id,
-            accountState->account(),
+            ai->account(),
             json.value(QStringLiteral("subject")).toString(),
             json.value(QStringLiteral("message")).toString(),
             QString(),
@@ -108,5 +108,7 @@ void ServerNotificationHandler::slotNotificationsReceived(JsonApiJob *job, const
             std::move(linkList) });
     }
     emit newNotificationList(list);
+
+    deleteLater();
 }
 }

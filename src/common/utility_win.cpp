@@ -16,10 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "utility.h"
-
 #include "asserts.h"
-#include "filesystembase.h"
+#include "utility.h"
 
 #include <comdef.h>
 #include <shlguid.h>
@@ -30,10 +28,8 @@
 #include <winerror.h>
 
 #include <QCoreApplication>
-#include <QDir>
 #include <QFileInfo>
 #include <QLibrary>
-#include <QSettings>
 
 extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
 
@@ -55,23 +51,57 @@ const QString systemThemesC()
 
 namespace OCC {
 
-void Utility::setupFavLink(const QString &)
+static void setupFavLink_private(const QString &folder)
 {
+    // First create a Desktop.ini so that the folder and favorite link show our application's icon.
+    QFile desktopIni(folder + QLatin1String("/Desktop.ini"));
+    if (desktopIni.exists()) {
+        qCWarning(lcUtility) << desktopIni.fileName() << "already exists, not overwriting it to set the folder icon.";
+    } else {
+        qCInfo(lcUtility) << "Creating" << desktopIni.fileName() << "to set a folder icon in Explorer.";
+        desktopIni.open(QFile::WriteOnly);
+        desktopIni.write("[.ShellClassInfo]\r\nIconResource=");
+        desktopIni.write(QDir::toNativeSeparators(qApp->applicationFilePath()).toUtf8());
+        desktopIni.write(",0\r\n");
+        desktopIni.close();
+
+        // Set the folder as system and Desktop.ini as hidden+system for explorer to pick it.
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/cc144102
+        DWORD folderAttrs = GetFileAttributesW((wchar_t *)folder.utf16());
+        SetFileAttributesW((wchar_t *)folder.utf16(), folderAttrs | FILE_ATTRIBUTE_SYSTEM);
+        SetFileAttributesW((wchar_t *)desktopIni.fileName().utf16(), FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM);
+    }
+
+    // Windows Explorer: Place under "Favorites" (Links)
+    QString linkName;
+    QDir folderDir(QDir::fromNativeSeparators(folder));
+
+    /* Use new WINAPI functions */
+    PWSTR path;
+
+    if (SHGetKnownFolderPath(FOLDERID_Links, 0, NULL, &path) == S_OK) {
+        QString links = QDir::fromNativeSeparators(QString::fromWCharArray(path));
+        linkName = QDir(links).filePath(folderDir.dirName() + QLatin1String(".lnk"));
+        CoTaskMemFree(path);
+    }
+    qCInfo(lcUtility) << "Creating favorite link from" << folder << "to" << linkName;
+    if (!QFile::link(folder, linkName))
+        qCWarning(lcUtility) << "linking" << folder << "to" << linkName << "failed!";
 }
 
-bool Utility::hasSystemLaunchOnStartup(const QString &appName)
+bool hasSystemLaunchOnStartup_private(const QString &appName)
 {
     QSettings settings(systemRunPathC(), QSettings::NativeFormat);
     return settings.contains(appName);
 }
 
-bool Utility::hasLaunchOnStartup(const QString &appName)
+bool hasLaunchOnStartup_private(const QString &appName)
 {
     QSettings settings(runPathC(), QSettings::NativeFormat);
     return settings.contains(appName);
 }
 
-void Utility::setLaunchOnStartup(const QString &appName, const QString &guiName, bool enable)
+void setLaunchOnStartup_private(const QString &appName, const QString &guiName, bool enable)
 {
     Q_UNUSED(guiName);
     QSettings settings(runPathC(), QSettings::NativeFormat);
@@ -82,13 +112,11 @@ void Utility::setLaunchOnStartup(const QString &appName, const QString &guiName,
     }
 }
 
-#ifndef TOKEN_AUTH_ONLY
-bool Utility::hasDarkSystray()
+static inline bool hasDarkSystray_private()
 {
     const QSettings settings(systemThemesC(), QSettings::NativeFormat);
     return !settings.value(QStringLiteral("SystemUsesLightTheme"), false).toBool();
 }
-#endif
 
 QVariant Utility::registryGetKeyValue(HKEY hRootKey, const QString &subKey, const QString &valueName)
 {

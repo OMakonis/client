@@ -37,9 +37,9 @@ const QString backupTagNameC()
 {
     return QStringLiteral("backup_finished");
 }
-auto tagUrl()
+const QUrl tagUrl(const OCC::AccountPtr &account)
 {
-    return QStringLiteral("remote.php/dav/systemtags");
+    return Utility::concatUrlPath(account->url(), QStringLiteral("remote.php/dav/systemtags"));
 }
 }
 
@@ -51,11 +51,9 @@ SocketUploadJob::SocketUploadJob(const QSharedPointer<SocketApiJobV2> &job)
 
 void SocketUploadJob::prepareTag(const AccountPtr &account)
 {
-    const QJsonObject json({ { QStringLiteral("name"), backupTagNameC() } });
-    auto tagJob = new OCC::SimpleNetworkJob(account, account->url(), tagUrl(), "POST", json, {}, this);
+    auto tagJob = new OCC::SimpleNetworkJob(account, this);
     connect(tagJob, &OCC::SimpleNetworkJob::finishedSignal, this, [account, this] {
-        // TODO: dav url
-        auto propfindJob = new OCC::LsColJob(account, account->davUrl(), tagUrl(), this);
+        auto propfindJob = new OCC::LsColJob(account, tagUrl(account), this);
         propfindJob->setProperties({ QByteArrayLiteral("http://owncloud.org/ns:display-name"), QByteArrayLiteral("http://owncloud.org/ns:id") });
 
         connect(propfindJob, &LsColJob::directoryListingIterated, this, [this](const QString &, const QMap<QString, QString> &data) {
@@ -68,17 +66,14 @@ void SocketUploadJob::prepareTag(const AccountPtr &account)
         });
         propfindJob->start();
     });
+    const QJsonObject json({ { QStringLiteral("name"), backupTagNameC() } });
+    QNetworkRequest req;
+    tagJob->prepareRequest(QByteArrayLiteral("POST"), tagUrl(account), req, json);
     tagJob->start();
 }
 
 void SocketUploadJob::start()
 {
-    fail("needs porting");
-#if 0
-    // TODO: spaces
-    // TODO: ProgressDispatcher requires a folder object
-    // TODO: SyncEngine requires an SyncOptions object
-    return;
     _localPath = _apiJob->arguments()[QLatin1String("localPath")].toString();
     auto remotePath = _apiJob->arguments()[QLatin1String("remotePath")].toString();
     if (!remotePath.startsWith(QLatin1Char('/'))) {
@@ -115,8 +110,7 @@ void SocketUploadJob::start()
     }
 
     auto db = new SyncJournalDb(tmp->fileName(), this);
-    // TODO: folder based url
-    auto engine = new SyncEngine(account->account(), account->account()->davUrl(), _localPath.endsWith(QLatin1Char('/')) ? _localPath : _localPath + QLatin1Char('/'), remotePath, db);
+    auto engine = new SyncEngine(account->account(), _localPath.endsWith(QLatin1Char('/')) ? _localPath : _localPath + QLatin1Char('/'), remotePath, db);
     engine->setParent(db);
     tmp->setParent(db);
 
@@ -125,8 +119,7 @@ void SocketUploadJob::start()
     }
 
     connect(engine, &OCC::SyncEngine::transmissionProgress, this, [this](const ProgressInfo &info) {
-        // TODO:
-        // Q_EMIT ProgressDispatcher::instance()->progressInfo(_localPath, info);
+        Q_EMIT ProgressDispatcher::instance()->progressInfo(_localPath, info);
     });
     connect(engine, &OCC::SyncEngine::itemCompleted, this, [this](const OCC::SyncFileItemPtr item) {
         if (item->_errorString.isEmpty()) {
@@ -138,9 +131,7 @@ void SocketUploadJob::start()
 
     connect(engine, &OCC::SyncEngine::finished, this, [engine, this](bool ok) {
         if (ok) {
-            auto tagJob = new OCC::SimpleNetworkJob(engine->account(), engine->account()->url(),
-                QStringLiteral("remote.php/dav/systemtags-relations/files/%1/%2").arg(_backupFileId, QString::number(_finisedTagId)),
-                "PUT", {}, {}, this);
+            auto tagJob = new OCC::SimpleNetworkJob(engine->account(), this);
             connect(tagJob, &OCC::SimpleNetworkJob::finishedSignal, this, [tagJob, this] {
                 if (tagJob->reply()->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 201) {
                     logMessage(_localPath, tr("Backup of %1 succeeded").arg(QDir::toNativeSeparators(_localPath)));
@@ -150,6 +141,7 @@ void SocketUploadJob::start()
                 }
             });
             OC_ASSERT(_finisedTagId > 0);
+            tagJob->prepareRequest(QByteArrayLiteral("PUT"), Utility::concatUrlPath(engine->account()->url(), QStringLiteral("remote.php/dav/systemtags-relations/files/%1/%2").arg(_backupFileId, QString::number(_finisedTagId))));
             tagJob->start();
         } else {
             fail(tr("Failed to create backup: %1").arg(_errorFiles.join(", ")));
@@ -170,12 +162,11 @@ void SocketUploadJob::start()
     prepareTag(account->account());
 
     // create the dir, fail if it already exists
-    // TODO:: dav url
-    auto mkdir = new OCC::MkColJob(engine->account(), engine->account()->davUrl(), remotePath, {}, this);
-    connect(mkdir, &OCC::MkColJob::finishedWithoutError, this, [engine, remotePath, this] {
+    auto mkdir = new OCC::MkColJob(engine->account(), remotePath);
+    connect(mkdir, &OCC::MkColJob::finishedWithoutError, this, [engine, remotePath, this]{
+
         // we need the int file id without the instance id so we can't use the OC-FileId
-        // TODO; dav url
-        auto propfindJob = new PropfindJob(engine->account(), engine->account()->davUrl(), remotePath, this);
+        auto propfindJob = new PropfindJob(engine->account(), remotePath, this);
         propfindJob->setProperties({ QByteArrayLiteral("http://owncloud.org/ns:fileid") });
 
         connect(propfindJob, &PropfindJob::result, this, [engine, this](const QMap<QString, QString> &data) {
@@ -195,7 +186,6 @@ void SocketUploadJob::start()
         }
     });
     mkdir->start();
-#endif
 }
 
 void SocketUploadJob::fail(const QString &error)
@@ -218,6 +208,5 @@ void SocketUploadJob::logMessage(const QString &localPath, const QString &messag
     }
     ocApp()->gui()->slotShowTrayMessage(tr("%1 backup").arg(Theme::instance()->appNameGUI()), message, icon);
     item->_responseTimeStamp = QDateTime::currentDateTime().toString(Qt::RFC2822Date).toUtf8();
-    // this requires a registed folder
-    // Q_EMIT ProgressDispatcher::instance()->itemCompleted(_folder, item);
+    Q_EMIT ProgressDispatcher::instance()->itemCompleted(QDir::toNativeSeparators(localPath), item);
 }

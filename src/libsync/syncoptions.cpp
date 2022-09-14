@@ -19,8 +19,8 @@
 
 using namespace OCC;
 
-SyncOptions::SyncOptions(QSharedPointer<Vfs> vfs)
-    : _vfs(vfs)
+SyncOptions::SyncOptions()
+    : _vfs(new VfsOff)
 {
 }
 

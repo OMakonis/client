@@ -13,19 +13,17 @@
  */
 #pragma once
 
-#include "assert.h"
-#include "ocsynclib.h"
-#include "pinstate.h"
-#include "result.h"
-#include "syncfilestatus.h"
-
 #include <QObject>
 #include <QScopedPointer>
 #include <QSharedPointer>
-#include <QUrl>
-#include <QVersionNumber>
 
 #include <memory>
+
+#include "assert.h"
+#include "ocsynclib.h"
+#include "result.h"
+#include "syncfilestatus.h"
+#include "pinstate.h"
 
 typedef struct csync_file_stat_s csync_file_stat_t;
 
@@ -40,14 +38,6 @@ class SyncFileItem;
 /** Collection of parameters for initializing a Vfs instance. */
 struct OCSYNC_EXPORT VfsSetupParams
 {
-    VfsSetupParams() = default;
-
-    explicit VfsSetupParams(const AccountPtr &account, const QUrl &baseUrl, bool groupInSidebar)
-        : account(account)
-        , _baseUrl(baseUrl)
-        , _groupInSidebar(groupInSidebar)
-    {
-    }
     /** The full path to the folder on the local filesystem
      *
      * Always ends with /.
@@ -72,27 +62,12 @@ struct OCSYNC_EXPORT VfsSetupParams
     /// Strings potentially passed on to the platform
     QString providerDisplayName;
     QString providerName;
-    QVersionNumber providerVersion;
+    QString providerVersion;
 
     /** when registering with the system we might use
      *  a different presentaton to identify the accounts
      */
     bool multipleAccountsRegistered = false;
-
-    const QUrl &baseUrl() const
-    {
-        return _baseUrl;
-    }
-
-    bool groupInSidebar() const
-    {
-        return _groupInSidebar;
-    }
-
-
-private:
-    QUrl _baseUrl;
-    bool _groupInSidebar = false;
 };
 
 /** Interface describing how to deal with virtual/placeholder files.
@@ -181,17 +156,17 @@ public:
     virtual bool socketApiPinStateActionsShown() const = 0;
 
     /// Create a new dehydrated placeholder. Called from PropagateDownload.
-    virtual OC_REQUIRED_RESULT Result<void, QString> createPlaceholder(const SyncFileItem &item) = 0;
+    OC_REQUIRED_RESULT virtual Result<void, QString> createPlaceholder(const SyncFileItem &item) = 0;
 
     /** Discovery hook: even unchanged files may need UPDATE_METADATA.
      *
      * For instance cfapi vfs wants local hydrated non-placeholder files to
      * become hydrated placeholder files.
      */
-    virtual OC_REQUIRED_RESULT bool needsMetadataUpdate(const SyncFileItem &item) = 0;
+    OC_REQUIRED_RESULT virtual bool needsMetadataUpdate(const SyncFileItem &item) = 0;
 
     /// Determine whether the file at the given absolute path is a dehydrated placeholder.
-    virtual OC_REQUIRED_RESULT bool isDehydratedPlaceholder(const QString &filePath) = 0;
+    OC_REQUIRED_RESULT virtual bool isDehydratedPlaceholder(const QString &filePath) = 0;
 
     /** Similar to isDehydratedPlaceholder() but used from sync discovery.
      *
@@ -200,7 +175,7 @@ public:
      *
      * Returning true means that type was fully determined.
      */
-    virtual OC_REQUIRED_RESULT bool statTypeVirtualFile(csync_file_stat_t *stat, void *stat_data) = 0;
+    OC_REQUIRED_RESULT virtual bool statTypeVirtualFile(csync_file_stat_t *stat, void *stat_data) = 0;
 
     /** Sets the pin state for the item at a path.
      *
@@ -211,7 +186,7 @@ public:
      *
      * relFilePath is relative to the sync folder. Can be "" for root folder.
      */
-    virtual OC_REQUIRED_RESULT bool setPinState(const QString &relFilePath, PinState state) = 0;
+    OC_REQUIRED_RESULT virtual bool setPinState(const QString &relFilePath, PinState state) = 0;
 
     /** Returns the pin state of an item at a path.
      *
@@ -222,7 +197,7 @@ public:
      *
      * Returns none on retrieval error.
      */
-    virtual OC_REQUIRED_RESULT Optional<PinState> pinState(const QString &relFilePath) = 0;
+    OC_REQUIRED_RESULT virtual Optional<PinState> pinState(const QString &relFilePath) = 0;
 
     /** Returns availability status of an item at a path.
      *
@@ -231,7 +206,7 @@ public:
      *
      * folderPath is relative to the sync folder. Can be "" for root folder.
      */
-    virtual OC_REQUIRED_RESULT AvailabilityResult availability(const QString &folderPath) = 0;
+    OC_REQUIRED_RESULT virtual AvailabilityResult availability(const QString &folderPath) = 0;
 
 public slots:
     /** Update in-sync state based on SyncFileStatusTracker signal.
@@ -255,7 +230,7 @@ protected:
      * If the remote metadata changes, the local placeholder's metadata should possibly
      * change as well.
      */
-    virtual OC_REQUIRED_RESULT Result<ConvertToPlaceholderResult, QString> updateMetadata(const SyncFileItem &item, const QString &filePath, const QString &replacesFile) = 0;
+    OC_REQUIRED_RESULT virtual Result<ConvertToPlaceholderResult, QString> updateMetadata(const SyncFileItem &item, const QString &filePath, const QString &replacesFile) = 0;
 
     /** Setup the plugin for the folder.
      *
@@ -279,8 +254,6 @@ protected:
     friend class OwncloudPropagator;
 };
 
-<<<<<<< HEAD
-=======
 /// Implementation of Vfs for Vfs::Off mode - does nothing
 class OCSYNC_EXPORT VfsOff : public Vfs
 {
@@ -317,7 +290,6 @@ protected:
     void startImpl(const VfsSetupParams &) override { Q_EMIT started(); }
 };
 
->>>>>>> refs/remotes/origin/master
 /// Check whether the plugin for the mode is available.
 OCSYNC_EXPORT bool isVfsPluginAvailable(Vfs::Mode mode);
 

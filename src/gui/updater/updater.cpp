@@ -20,14 +20,10 @@
 #include "updater/sparkleupdater.h"
 #include "updater/ocupdater.h"
 
-#ifdef WITH_APPIMAGEUPDATER
-#include "updater/appimageupdater.h"
-#endif
-
-#include "common/utility.h"
-#include "common/version.h"
-#include "configfile.h"
 #include "theme.h"
+#include "common/utility.h"
+#include "version.h"
+#include "configfile.h"
 
 #include "config.h"
 
@@ -76,15 +72,7 @@ QUrlQuery Updater::getQueryParams()
     Theme *theme = Theme::instance();
     QString platform = QStringLiteral("stranger");
     if (Utility::isLinux()) {
-#ifdef WITH_APPIMAGEUPDATER
-        if (Utility::runningInAppImage()) {
-            platform = "linux-appimage-" + QSysInfo::buildCpuArchitecture();
-        } else {
-#endif
-            platform = QStringLiteral("linux");
-#ifdef WITH_APPIMAGEUPDATER
-        }
-#endif
+        platform = QStringLiteral("linux");
     } else if (Utility::isBSD()) {
         platform = QStringLiteral("bsd");
     } else if (Utility::isWindows()) {
@@ -97,13 +85,13 @@ QUrlQuery Updater::getQueryParams()
     if (!sysInfo.isEmpty()) {
         query.addQueryItem(QStringLiteral("client"), sysInfo);
     }
-    query.addQueryItem(QStringLiteral("version"), Version::versionWithBuildNumber().toString());
+    query.addQueryItem(QStringLiteral("version"), clientVersion());
     query.addQueryItem(QStringLiteral("platform"), platform);
     query.addQueryItem(QStringLiteral("oem"), theme->appName());
     query.addQueryItem(QStringLiteral("buildArch"), QSysInfo::buildCpuArchitecture());
     query.addQueryItem(QStringLiteral("currentArch"), QSysInfo::currentCpuArchitecture());
 
-    query.addQueryItem(QStringLiteral("versionsuffix"), OCC::Version::suffix());
+    query.addQueryItem(QStringLiteral("versionsuffix"), MIRALL_VERSION_SUFFIX());
 
     auto channel = ConfigFile().updateChannel();
     if (channel != QLatin1String("stable")) {
@@ -147,15 +135,36 @@ Updater *Updater::create()
     // Also for MSI
     return new NSISUpdater(url);
 #else
-#ifdef WITH_APPIMAGEUPDATER
-    if (Utility::runningInAppImage()) {
-        return new AppImageUpdater(url);
-    }
-#endif
-
     // the best we can do is notify about updates
     return new PassiveUpdateNotifier(url);
 #endif
+}
+
+
+qint64 Updater::Helper::versionToInt(qint64 major, qint64 minor, qint64 patch, qint64 build)
+{
+    return major << 56 | minor << 48 | patch << 40 | build;
+}
+
+qint64 Updater::Helper::currentVersionToInt()
+{
+    return versionToInt(MIRALL_VERSION_MAJOR, MIRALL_VERSION_MINOR,
+        MIRALL_VERSION_PATCH, MIRALL_VERSION_BUILD);
+}
+
+qint64 Updater::Helper::stringVersionToInt(const QString &version)
+{
+    if (version.isEmpty())
+        return 0;
+    QByteArray baVersion = version.toLatin1();
+    int major = 0, minor = 0, patch = 0, build = 0;
+    sscanf(baVersion, "%d.%d.%d.%d", &major, &minor, &patch, &build);
+    return versionToInt(major, minor, patch, build);
+}
+
+QString Updater::clientVersion()
+{
+    return MIRALL_VERSION_FULL();
 }
 
 } // namespace OCC

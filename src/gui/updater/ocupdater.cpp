@@ -12,15 +12,13 @@
  * for more details.
  */
 
+#include "theme.h"
+#include "configfile.h"
+#include "common/utility.h"
 #include "accessmanager.h"
 #include "application.h"
-#include "common/utility.h"
-#include "common/version.h"
-#include "configfile.h"
-#include "theme.h"
 
 #include "updater/ocupdater.h"
-#include "updater/updater_private.h"
 
 #include <QObject>
 #include <QtCore>
@@ -30,9 +28,14 @@
 
 using namespace std::chrono_literals;
 
-using namespace std::chrono_literals;
-
 namespace OCC {
+
+static const char updateAvailableC[] = "Updater/updateAvailable";
+static const char updateTargetVersionC[] = "Updater/updateTargetVersion";
+static const char updateTargetVersionStringC[] = "Updater/updateTargetVersionString";
+static const char seenVersionC[] = "Updater/seenVersion";
+static const char autoUpdateAttemptedC[] = "Updater/autoUpdateAttempted";
+
 
 UpdaterScheduler::UpdaterScheduler(QObject *parent)
     : QObject(parent)
@@ -103,7 +106,7 @@ void OCUpdater::setUpdateUrl(const QUrl &url)
 
 bool OCUpdater::performUpdate()
 {
-    auto settings = ConfigFile::makeQSettings();
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
     QString updateFile = settings.value(updateAvailableC).toString();
     if (!updateFile.isEmpty() && QFile(updateFile).exists()
         && !updateSucceeded() /* Someone might have run the updater manually between restarts */) {
@@ -175,7 +178,7 @@ QString OCUpdater::statusString() const
     }
 }
 
-OCUpdater::DownloadState OCUpdater::downloadState() const
+int OCUpdater::downloadState() const
 {
     return _state;
 }
@@ -196,7 +199,7 @@ void OCUpdater::setDownloadState(DownloadState state)
 
 void OCUpdater::slotStartInstaller()
 {
-    auto settings = ConfigFile::makeQSettings();
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
     QString updateFile = settings.value(updateAvailableC).toString();
     settings.setValue(autoUpdateAttemptedC, true);
     settings.sync();
@@ -231,7 +234,7 @@ void OCUpdater::checkForUpdate()
 {
     QNetworkReply *reply = _accessManager->get(QNetworkRequest(_updateUrl));
     connect(_timeoutWatchdog, &QTimer::timeout, this, &OCUpdater::slotTimedOut);
-    _timeoutWatchdog->start(30s);
+    _timeoutWatchdog->start(30 * 1000);
     connect(reply, &QNetworkReply::finished, this, &OCUpdater::slotVersionInfoArrived);
 
     setDownloadState(CheckingServer);
@@ -244,10 +247,11 @@ void OCUpdater::slotOpenUpdateUrl()
 
 bool OCUpdater::updateSucceeded() const
 {
-    auto settings = ConfigFile::makeQSettings();
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
 
-    const auto targetVersionInt = QVersionNumber::fromString(settings.value(updateTargetVersionC).toString());
-    return Version::versionWithBuildNumber() >= targetVersionInt;
+    qint64 targetVersionInt = Helper::stringVersionToInt(settings.value(updateTargetVersionC).toString());
+    qint64 currentVersion = Helper::currentVersionToInt();
+    return currentVersion >= targetVersionInt;
 }
 
 void OCUpdater::slotVersionInfoArrived()
@@ -280,23 +284,6 @@ void OCUpdater::slotTimedOut()
     setDownloadState(DownloadTimedOut);
 }
 
-QVersionNumber OCUpdater::previouslySkippedVersion()
-{
-    auto settings = ConfigFile::makeQSettings();
-    return QVersionNumber::fromString(settings.value(previouslySkippedVersionC).toString());
-}
-
-void OCUpdater::setPreviouslySkippedVersion(const QVersionNumber &previouslySkippedVersion)
-{
-    setPreviouslySkippedVersion(previouslySkippedVersion.toString());
-}
-
-void OCUpdater::setPreviouslySkippedVersion(const QString &previouslySkippedVersionString)
-{
-    auto settings = ConfigFile::makeQSettings();
-    settings.setValue(previouslySkippedVersionC, previouslySkippedVersionString);
-}
-
 ////////////////////////////////////////////////////////////////////////
 
 NSISUpdater::NSISUpdater(const QUrl &url)
@@ -314,7 +301,7 @@ void NSISUpdater::slotWriteFile()
 
 void NSISUpdater::wipeUpdateData()
 {
-    auto settings = ConfigFile::makeQSettings();
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
     QString updateFileName = settings.value(updateAvailableC).toString();
     if (!updateFileName.isEmpty())
         QFile::remove(updateFileName);
@@ -327,21 +314,16 @@ void NSISUpdater::wipeUpdateData()
 void NSISUpdater::slotDownloadFinished()
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
-    const QUrl url(reply->url());
     reply->deleteLater();
-    _file->close();
     if (reply->error() != QNetworkReply::NoError) {
         setDownloadState(DownloadFailed);
         return;
     }
-    const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-    if (status != 200) {
-        setDownloadState(DownloadFailed);
-        return;
-    }
 
+    QUrl url(reply->url());
+    _file->close();
 
-    auto settings = ConfigFile::makeQSettings();
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
 
     // remove previously downloaded but not used installer
     QFile oldTargetFile(settings.value(updateAvailableC).toString());
@@ -359,36 +341,36 @@ void NSISUpdater::slotDownloadFinished()
 
 void NSISUpdater::versionInfoArrived(const UpdateInfo &info)
 {
-    auto settings = ConfigFile::makeQSettings();
-    const auto infoVersion = QVersionNumber::fromString(info.version());
-    const auto previouslySkippedVersion = this->previouslySkippedVersion();
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
+    qint64 infoVersion = Helper::stringVersionToInt(info.version());
+    auto seenString = settings.value(seenVersionC).toString();
+    qint64 seenVersion = Helper::stringVersionToInt(seenString);
+    qint64 currVersion = Helper::currentVersionToInt();
     qCInfo(lcUpdater) << "Version info arrived:"
-                      << "Your version:" << Version::versionWithBuildNumber()
-                      << "Skipped version:" << previouslySkippedVersion
-                      << "Available version:" << infoVersion << info.version()
-                      << "Available version string:" << info.versionString()
-                      << "Web url:" << info.web()
-                      << "Download url:" << info.downloadUrl();
+            << "Your version:" << currVersion
+            << "Skipped version:" << seenVersion << seenString
+            << "Available version:" << infoVersion << info.version()
+            << "Available version string:" << info.versionString()
+            << "Web url:" << info.web()
+            << "Download url:" << info.downloadUrl();
     if (info.version().isEmpty())
     {
         qCInfo(lcUpdater) << "No version information available at the moment";
         setDownloadState(UpToDate);
-    } else if (infoVersion <= Version::versionWithBuildNumber()
-        || infoVersion <= previouslySkippedVersion) {
+    } else if (infoVersion <= currVersion
+               || infoVersion <= seenVersion) {
         qCInfo(lcUpdater) << "Client is on latest version!";
         setDownloadState(UpToDate);
     } else {
-        const QString url = info.downloadUrl();
+        QString url = info.downloadUrl();
         if (url.isEmpty()) {
             showNoUrlDialog(info);
         } else {
             _targetFile = ConfigFile::configPath() + url.mid(url.lastIndexOf('/') + 1);
-            if (QFile::exists(_targetFile)) {
+            if (QFile(_targetFile).exists()) {
                 setDownloadState(DownloadComplete);
             } else {
-                auto request = QNetworkRequest(QUrl(url));
-                request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-                QNetworkReply *reply = qnam()->get(request);
+                QNetworkReply *reply = qnam()->get(QNetworkRequest(QUrl(url)));
                 connect(reply, &QIODevice::readyRead, this, &NSISUpdater::slotWriteFile);
                 connect(reply, &QNetworkReply::finished, this, &NSISUpdater::slotDownloadFinished);
                 setDownloadState(Downloading);
@@ -425,7 +407,7 @@ void NSISUpdater::showNoUrlDialog(const UpdateInfo &info)
     QString txt = tr("<p>A new version of the %1 Client is available.</p>"
                      "<p><b>%2</b> is available for download. The installed version is %3.</p>")
                       .arg(Utility::escape(Theme::instance()->appNameGUI()),
-                          Utility::escape(info.versionString()), Utility::escape(Version::versionWithBuildNumber().toString()));
+                          Utility::escape(info.versionString()), Utility::escape(clientVersion()));
 
     lbl->setText(txt);
     lbl->setTextFormat(Qt::RichText);
@@ -443,7 +425,7 @@ void NSISUpdater::showNoUrlDialog(const UpdateInfo &info)
     connect(reject, &QAbstractButton::clicked, msgBox, &QDialog::reject);
     connect(getupdate, &QAbstractButton::clicked, msgBox, &QDialog::accept);
 
-    connect(skip, &QAbstractButton::clicked, this, &NSISUpdater::slotSetPreviouslySkippedVersion);
+    connect(skip, &QAbstractButton::clicked, this, &NSISUpdater::slotSetSeenVersion);
     connect(getupdate, &QAbstractButton::clicked, this, &NSISUpdater::slotOpenUpdateUrl);
 
     layout->addWidget(bb);
@@ -476,7 +458,7 @@ void NSISUpdater::showUpdateErrorDialog(const QString &targetVersion)
     QString txt = tr("<p>A new version of the %1 Client is available but the updating process failed.</p>"
                      "<p><b>%2</b> has been downloaded. The installed version is %3.</p>")
                       .arg(Utility::escape(Theme::instance()->appNameGUI()),
-                          Utility::escape(targetVersion), Utility::escape(Version::versionWithBuildNumber().toString()));
+                          Utility::escape(targetVersion), Utility::escape(clientVersion()));
 
     lbl->setText(txt);
     lbl->setTextFormat(Qt::RichText);
@@ -498,7 +480,7 @@ void NSISUpdater::showUpdateErrorDialog(const QString &targetVersion)
 
     connect(skip, &QAbstractButton::clicked, this, [this]() {
         wipeUpdateData();
-        slotSetPreviouslySkippedVersion();
+        slotSetSeenVersion();
     });
     // askagain: do nothing
     connect(retry, &QAbstractButton::clicked, this, [this]() {
@@ -517,7 +499,7 @@ void NSISUpdater::showUpdateErrorDialog(const QString &targetVersion)
 bool NSISUpdater::handleStartup()
 {
     ConfigFile cfg;
-    auto settings = ConfigFile::makeQSettings();
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
     QString updateFileName = settings.value(updateAvailableC).toString();
     // has the previous run downloaded an update?
     if (!updateFileName.isEmpty() && QFile(updateFileName).exists()) {
@@ -527,7 +509,7 @@ bool NSISUpdater::handleStartup()
             if (updateSucceeded()) {
                 // success: clean up
                 qCInfo(lcUpdater) << "The requested update attempt has succeeded"
-                                  << Version::versionWithBuildNumber();
+                        << Helper::currentVersionToInt();
                 wipeUpdateData();
                 return false;
             } else {
@@ -545,9 +527,10 @@ bool NSISUpdater::handleStartup()
     return false;
 }
 
-void NSISUpdater::slotSetPreviouslySkippedVersion()
+void NSISUpdater::slotSetSeenVersion()
 {
-    setPreviouslySkippedVersion(updateInfo().version());
+    QSettings settings(ConfigFile::configFile(), QSettings::IniFormat);
+    settings.setValue(seenVersionC, updateInfo().version());
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -578,8 +561,10 @@ void PassiveUpdateNotifier::backgroundCheckForUpdate()
 
 void PassiveUpdateNotifier::versionInfoArrived(const UpdateInfo &info)
 {
-    const auto remoteVer = QVersionNumber::fromString(info.version());
-    if (info.version().isEmpty() || Version::versionWithBuildNumber() >= remoteVer) {
+    qint64 currentVer = Helper::currentVersionToInt();
+    qint64 remoteVer = Helper::stringVersionToInt(info.version());
+
+    if (info.version().isEmpty() || currentVer >= remoteVer) {
         qCInfo(lcUpdater) << "Client is on latest version!";
         setDownloadState(UpToDate);
     } else {

@@ -33,10 +33,13 @@ signals:
     void newNotificationList(ActivityList);
 
 public slots:
-    void slotFetchNotifications(AccountStatePtr ptr);
+    void slotFetchNotifications(AccountState *ptr);
+
+private slots:
+    void slotNotificationsReceived(const QJsonDocument &json, int statusCode);
 
 private:
-    void slotNotificationsReceived(JsonApiJob *job, const AccountStatePtr &accountState);
+    QPointer<JsonApiJob> _notificationJob;
 };
 }
 
