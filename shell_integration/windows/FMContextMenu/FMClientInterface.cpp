@@ -12,7 +12,7 @@
 * details.
 */
 
-#include "OCClientInterface.h"
+#include "FMClientInterface.h"
 
 #include "CommunicationSocket.h"
 #include "StringUtil.h"
@@ -49,7 +49,7 @@ template <typename T = wstring>
 void log(const wstring &msg, const T &error = {})
 {
     wstringstream tmp;
-    tmp << L"ownCloud: " << msg;
+    tmp << L"Files.fm Sync: " << msg;
     if (!error.empty()) {
         tmp << L" " << error.data();
     }
@@ -110,7 +110,7 @@ std::shared_ptr<HBITMAP> saveImage(const string &data)
 }
 }
 
-OCClientInterface::ContextMenuInfo OCClientInterface::FetchInfo(const std::wstring &files)
+FMClientInterface::ContextMenuInfo FMClientInterface::FetchInfo(const std::wstring &files)
 {
     auto pipename = CommunicationSocket::DefaultPipePath();
 
@@ -167,7 +167,7 @@ OCClientInterface::ContextMenuInfo OCClientInterface::FetchInfo(const std::wstri
     return info;
 }
 
-void OCClientInterface::SendRequest(const wstring &verb, const std::wstring &path)
+void FMClientInterface::SendRequest(const wstring &verb, const std::wstring &path)
 {
     auto pipename = CommunicationSocket::DefaultPipePath();
 

@@ -14,26 +14,13 @@
 
 #pragma once
 
-#include <shlobj.h>
+#include <windows.h>
 
-class OCOverlay : public IShellIconOverlayIdentifier
-
+class __declspec(dllexport) FMOverlayRegistrationHandler 
 {
-public:
-    OCOverlay(int state);
-
-    IFACEMETHODIMP_(ULONG) AddRef();
-    IFACEMETHODIMP GetOverlayInfo(PWSTR pwszIconFile, int cchMax, int *pIndex, DWORD *pdwFlags);
-    IFACEMETHODIMP GetPriority(int *pPriority);
-    IFACEMETHODIMP IsMemberOf(PCWSTR pwszPath, DWORD dwAttrib);
-    IFACEMETHODIMP QueryInterface(REFIID riid, void **ppv);
-    IFACEMETHODIMP_(ULONG) Release();
-
-protected:
-    ~OCOverlay();
-
-private:
-    long _referenceCount;
-    int _state;
+    public:
+        static HRESULT MakeRegistryEntries(const CLSID& clsid, PCWSTR fileType);
+        static HRESULT RegisterCOMObject(PCWSTR modulePath, PCWSTR friendlyName, const CLSID& clsid);
+        static HRESULT RemoveRegistryEntries(PCWSTR friendlyName);
+        static HRESULT UnregisterCOMObject(const CLSID& clsid);
 };
-
