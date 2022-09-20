@@ -391,7 +391,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
 
     connect(_ui->toolBar, &QToolBar::actionTriggered, this, []{
-        return;
+        if(_ui->toolBar->toolTip() == QStringLiteral("account"))_ui->toolBar->setToolTip("changed");
     });
     // Refresh immediatly when getting online
     connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
