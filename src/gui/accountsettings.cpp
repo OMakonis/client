@@ -183,7 +183,11 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
 
     connect(_accountState, &AccountState::stateChanged, this, &AccountSettings::slotAccountStateChanged);
     slotAccountStateChanged();
-
+    
+    if(_accountState && _accountState->state() == AccountState::SignedOut)
+    {
+        _accountState->signIn();
+    }
     connect(&_quotaInfo, &QuotaInfo::quotaUpdated,
         this, &AccountSettings::slotUpdateQuota);
 
@@ -843,7 +847,6 @@ void AccountSettings::slotAccountStateChanged()
             break;
         case AccountState::SignedOut:
             showConnectionLabel(tr("Signed out from %1.").arg(serverWithUser));
-            _accountState->signIn();
             break;
         case AccountState::AskingCredentials: {
             auto cred = qobject_cast<HttpCredentialsGui *>(account->credentials());
