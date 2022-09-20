@@ -192,7 +192,7 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
         qobject_cast<HttpCredentialsGui *>(_accountState->account()->credentials())->openBrowser();
     });
 }
-void callLoginPage()
+void AccountSettings::callLoginPage()
 {
     if(_accountState && _accountState->state() == AccountState::SignedOut)
     {
