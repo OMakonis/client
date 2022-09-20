@@ -843,6 +843,7 @@ void AccountSettings::slotAccountStateChanged()
             break;
         case AccountState::SignedOut:
             showConnectionLabel(tr("Signed out from %1.").arg(serverWithUser));
+            _accountState->signIn();
             break;
         case AccountState::AskingCredentials: {
             auto cred = qobject_cast<HttpCredentialsGui *>(account->credentials());
