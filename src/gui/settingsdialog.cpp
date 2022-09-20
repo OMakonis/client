@@ -186,7 +186,8 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     closeWindowAction->setShortcut(QKeySequence("Ctrl+W"));
     connect(closeWindowAction, &QAction::triggered, this, &SettingsDialog::hide);
     connect(_ui->toolBar, &QToolBar::actionTriggered, this, [this]{
-        if(this->toolTip() == Theme::instance()->account()->displayName())_ui->toolBar->setToolTip("changed");
+        Account *account = static_cast<Account *>(sender());
+        if(this->toolTip() == account->displayName())_ui->toolBar->setToolTip("changed");
         //else _ui->toolBar->setToolTip("changed 2");
     });
     addAction(closeWindowAction);
