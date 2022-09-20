@@ -189,17 +189,9 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
         Account *account = static_cast<Account *>(sender());
         if(this->toolTip() == account->displayName())
         {
-            QString highlightColor("#f0f0f0");
-            QString highlightTextColor("blue");
-            QString dark(palette().dark().color().name());
-            QString background(palette().base().color().name());
-            _ui->toolBar->setStyleSheet(TOOLBAR_CSS().arg(background, dark, highlightColor, highlightTextColor));
-
-            const auto &toolButtonActions = findChildren<ToolButtonAction *>();
-            for (auto *a : toolButtonActions) {
-                a->updateIcon();
-            }
+            ocApp()->gui()->runNewAccountWizard();
         }
+        else ocApp()->gui()->runNewAccountWizard();
         
     });
     addAction(closeWindowAction);
