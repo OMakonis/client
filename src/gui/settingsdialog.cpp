@@ -168,7 +168,7 @@ public:
             setIcon(Utility::getCoreIcon(_iconName));
         }
     }
-
+    
 private:
     QString _iconName;
 };
@@ -185,6 +185,10 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     QAction *closeWindowAction = new QAction(this);
     closeWindowAction->setShortcut(QKeySequence("Ctrl+W"));
     connect(closeWindowAction, &QAction::triggered, this, &SettingsDialog::hide);
+    connect(_ui->toolBar, &QToolBar::actionTriggered, this, [this]{
+        if(this->toolTip() == Theme::instance()->account()->displayName())_ui->toolBar->setToolTip("changed");
+        else _ui->toolBar->setToolTip("changed 2");
+    });
     addAction(closeWindowAction);
 
     setObjectName("Settings"); // required as group for saveGeometry call
@@ -390,10 +394,6 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(s->account().data(), &Account::accountChangedAvatar, this, &SettingsDialog::slotAccountAvatarChanged);
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
 
-    connect(_ui->toolBar, &QToolBar::actionTriggered, this, [this, s]{
-        if(this->toolTip() == s->account()->displayName())_ui->toolBar->setToolTip("changed");
-
-    });
     // Refresh immediatly when getting online
     connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
 

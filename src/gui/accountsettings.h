@@ -55,6 +55,7 @@ class AccountSettings : public QWidget
 public:
     explicit AccountSettings(AccountState *accountState, QWidget *parent = nullptr);
     ~AccountSettings() override;
+    void callLoginPage();
 
 signals:
     void folderChanged();
