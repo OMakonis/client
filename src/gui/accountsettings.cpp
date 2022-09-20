@@ -192,13 +192,7 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
         qobject_cast<HttpCredentialsGui *>(_accountState->account()->credentials())->openBrowser();
     });
 }
-void AccountSettings::callLoginPage()
-{
-    if(_accountState && _accountState->state() == AccountState::SignedOut)
-    {
-        _accountState->signIn();
-    }
-}
+
 void AccountSettings::createAccountToolbox()
 {
     QMenu *menu = new QMenu(ui->_accountToolbox);
@@ -1068,7 +1062,13 @@ bool AccountSettings::event(QEvent *e)
     }
     return QWidget::event(e);
 }
-
+void AccountSettings::callLoginPage()
+{
+    if(_accountState && _accountState->state() == AccountState::SignedOut)
+    {
+        _accountState->signIn();
+    }
+}
 } // namespace OCC
 
 #include "accountsettings.moc"

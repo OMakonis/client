@@ -187,7 +187,7 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     connect(closeWindowAction, &QAction::triggered, this, &SettingsDialog::hide);
     connect(_ui->toolBar, &QToolBar::actionTriggered, this, [this]{
         if(this->toolTip() == Theme::instance()->account()->displayName())_ui->toolBar->setToolTip("changed");
-        else _ui->toolBar->setToolTip("changed 2");
+        //else _ui->toolBar->setToolTip("changed 2");
     });
     addAction(closeWindowAction);
 
