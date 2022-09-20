@@ -190,10 +190,10 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
         if(this->toolTip() == account->displayName())
         {
             QString highlightColor("#f0f0f0");
-            QString highlightTextColor("red");
+            QString highlightTextColor("blue");
             QString dark(palette().dark().color().name());
             QString background(palette().base().color().name());
-            _ui->toolBar->setStyleSheet(TOOLBAR_CSS().arg(background, dark, highlightColor, highlightTextColor));
+            this->toolBar->setStyleSheet(TOOLBAR_CSS().arg(background, dark, highlightColor, highlightTextColor));
 
             const auto &toolButtonActions = findChildren<ToolButtonAction *>();
             for (auto *a : toolButtonActions) {
