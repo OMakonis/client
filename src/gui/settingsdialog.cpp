@@ -400,8 +400,8 @@ void SettingsDialog::accountAdded(AccountState *s)
         const auto &toolButtonActions = findChildren<ToolButtonAction *>();
         for (auto *a : toolButtonActions) {
             a->updateIcon();
-    }
-        });
+        }
+    });
     // Refresh immediatly when getting online
     connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
 
