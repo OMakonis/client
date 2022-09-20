@@ -183,7 +183,7 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
 
     connect(_accountState, &AccountState::stateChanged, this, &AccountSettings::slotAccountStateChanged);
     slotAccountStateChanged();
-    
+
     connect(&_quotaInfo, &QuotaInfo::quotaUpdated,
         this, &AccountSettings::slotUpdateQuota);
 
@@ -192,6 +192,7 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
         qobject_cast<HttpCredentialsGui *>(_accountState->account()->credentials())->openBrowser();
     });
 }
+
 
 void AccountSettings::createAccountToolbox()
 {
@@ -207,7 +208,7 @@ void AccountSettings::createAccountToolbox()
 
     ui->_accountToolbox->setText(tr("Account") + QLatin1Char(' '));
     ui->_accountToolbox->setMenu(menu);
-    ui->_accousntToolbox->setPopupMode(QToolButton::InstantPopup);
+    ui->_accountToolbox->setPopupMode(QToolButton::InstantPopup);
 }
 
 QString AccountSettings::selectedFolderAlias() const
@@ -1062,13 +1063,7 @@ bool AccountSettings::event(QEvent *e)
     }
     return QWidget::event(e);
 }
-void AccountSettings::callLoginPage()
-{
-    if(_accountState && _accountState->state() == AccountState::SignedOut)
-    {
-        _accountState->signIn();
-    }
-}
+
 } // namespace OCC
 
 #include "accountsettings.moc"
