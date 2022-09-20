@@ -193,7 +193,7 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
             QString highlightTextColor("blue");
             QString dark(palette().dark().color().name());
             QString background(palette().base().color().name());
-            this->toolBar->setStyleSheet(TOOLBAR_CSS().arg(background, dark, highlightColor, highlightTextColor));
+            _ui->toolBar->setStyleSheet(TOOLBAR_CSS().arg(background, dark, highlightColor, highlightTextColor));
 
             const auto &toolButtonActions = findChildren<ToolButtonAction *>();
             for (auto *a : toolButtonActions) {
