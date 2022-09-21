@@ -386,7 +386,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     _actionForAccount.insert(s->account().data(), accountAction);
     accountAction->trigger();
 
-    connect(_actionGroup, &QActionGroup::triggered, this, [s]{ 
+    connect(_actionGroup, &QActionGroup::triggered, this, [this, s]{ 
         for (auto it = _actionGroupWidgets.begin(); it != _actionGroupWidgets.end(); ++it) {
         auto as = qobject_cast<AccountSettings *>(*it);
             if (!as) {
