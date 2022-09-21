@@ -343,7 +343,7 @@ void SettingsDialog::setVisible(bool visible)
 
 void SettingsDialog::slotSwitchPage(QAction *action)
 {
-    callLoginPage();
+    AccountSettings::callLoginPage();
     _ui->stack->setCurrentWidget(_actionGroupWidgets.value(action)); 
 }
 
