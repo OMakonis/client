@@ -185,7 +185,7 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     QAction *closeWindowAction = new QAction(this);
     closeWindowAction->setShortcut(QKeySequence("Ctrl+W"));
     connect(closeWindowAction, &QAction::triggered, this, &SettingsDialog::hide);
-    connect(_ui->toolBar->QToolButton, &QToolButton::triggered, this, [this]{
+    connect(_ui->toolBar->btn, &QToolButton::triggered, this, [this]{
         Account *account = static_cast<Account *>(sender());
         if(this->toolTip() == account->displayName())
         {
