@@ -386,8 +386,16 @@ void SettingsDialog::accountAdded(AccountState *s)
     _actionForAccount.insert(s->account().data(), accountAction);
     accountAction->trigger();
 
-    connect(_actionGroup, &QActionGroup::triggered, this, [s]{
-        s->signIn();
+    connect(_actionGroup, &QActionGroup::triggered, this, [s]{ 
+        for (auto it = _actionGroupWidgets.begin(); it != _actionGroupWidgets.end(); ++it) {
+        auto as = qobject_cast<AccountSettings *>(*it);
+            if (!as) {
+                continue;
+            }
+            if (as->accountsState() == s->data()) {
+                s->signIn();
+            }
+        }
     });
     connect(accountSettings, &AccountSettings::folderChanged, _gui, &ownCloudGui::slotFoldersChanged);
     connect(accountSettings, &AccountSettings::showIssuesList, this, &SettingsDialog::showIssuesList);
