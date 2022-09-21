@@ -63,7 +63,7 @@ public slots:
     void slotOpenOC();
     void slotUpdateQuota(qint64, qint64);
     void slotAccountStateChanged();
-
+    void slotCallLoginPage();
     AccountState *accountsState() { return _accountState; }
 
 protected slots:
@@ -84,7 +84,6 @@ protected slots:
     void slotFolderListClicked(const QModelIndex &indx);
     void doExpand();
     void slotLinkActivated(const QString &link);
-    void slotCallLoginPage();
 
 private:
     void showConnectionLabel(const QString &message,
