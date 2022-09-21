@@ -343,16 +343,7 @@ void SettingsDialog::setVisible(bool visible)
 
 void SettingsDialog::slotSwitchPage(QAction *action)
 {
-    if (action == _addAccountAction) 
-    {
-        const auto reply = QMessageBox::question(this, tr("Quit %1").arg("appNameGui"),
-        tr("Are you sure you want to quit %1?").arg("appNameGui"),
-        QMessageBox::Yes | QMessageBox::No);
-        if (reply == QMessageBox::Yes)
-        {
-            qApp->quit();
-        }   
-    }
+    callLoginPage();
     _ui->stack->setCurrentWidget(_actionGroupWidgets.value(action)); 
 }
 
