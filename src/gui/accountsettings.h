@@ -54,8 +54,7 @@ class AccountSettings : public QWidget
 
 public:
     explicit AccountSettings(AccountState *accountState, QWidget *parent = nullptr);
-    ~AccountSettings() override;
-    void callLoginPage();
+    ~AccountSettings() override;   
 signals:
     void folderChanged();
     void showIssuesList(const QString &folderAlias);
@@ -91,6 +90,7 @@ private:
         QStringList errors = QStringList());
     bool event(QEvent *) override;
     void createAccountToolbox();
+    void callLoginPage();
 
     /// Returns the alias of the selected folder, empty string if none
     QString selectedFolderAlias() const;
