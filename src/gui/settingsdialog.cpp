@@ -249,8 +249,12 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     connect(_actionGroup, &QActionGroup::triggered, this, &SettingsDialog::slotSwitchPage);
 
     connect(_actionGroup, &QActionGroup::triggered, this, [this]{
-        Account *account = static_cast<Account *>(sender());
-        ocApp()->gui()->runNewAccountWizard();
+        const auto reply = QMessageBox::question(this, tr("Quit %1").arg("appNameGui"),
+            tr("Are you sure you want to quit %1?").arg("appNameGui"),
+            QMessageBox::Yes | QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            qApp->quit();
+        }
     });
 
 
