@@ -247,8 +247,6 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     _actionGroupWidgets.insert(generalAction, generalSettings);
 
     connect(_actionGroup, &QActionGroup::triggered, this, &SettingsDialog::slotSwitchPage);
-
-    connect(_actionGroup, &QActionGroup::triggered, this, &AccountSettings::slotCallLoginPage);
       
     connect(AccountManager::instance(), &AccountManager::accountAdded,
         this, &SettingsDialog::accountAdded);
@@ -388,6 +386,9 @@ void SettingsDialog::accountAdded(AccountState *s)
     _actionForAccount.insert(s->account().data(), accountAction);
     accountAction->trigger();
 
+    connect(_actionGroup, &QActionGroup::triggered, this, [s]{
+        s->signIn();
+    });
     connect(accountSettings, &AccountSettings::folderChanged, _gui, &ownCloudGui::slotFoldersChanged);
     connect(accountSettings, &AccountSettings::showIssuesList, this, &SettingsDialog::showIssuesList);
     connect(s->account().data(), &Account::accountChangedAvatar, this, &SettingsDialog::slotAccountAvatarChanged);
