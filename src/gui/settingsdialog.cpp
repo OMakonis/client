@@ -249,11 +249,15 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     connect(_actionGroup, &QActionGroup::triggered, this, &SettingsDialog::slotSwitchPage);
 
     connect(_actionGroup, &QActionGroup::triggered, this, [this]{
-        const auto reply = QMessageBox::question(this, tr("Quit %1").arg("appNameGui"),
+        Account *account = static_cast<Account *>(sender());
+        if(_ui->toolBar->toolTip() == account->displayName())
+        {
+            const auto reply = QMessageBox::question(this, tr("Quit %1").arg("appNameGui"),
             tr("Are you sure you want to quit %1?").arg("appNameGui"),
             QMessageBox::Yes | QMessageBox::No);
-        if (reply == QMessageBox::Yes) {
-            qApp->quit();
+            if (reply == QMessageBox::Yes) {
+                qApp->quit();
+            }
         }
     });
 
