@@ -386,11 +386,8 @@ void SettingsDialog::accountAdded(AccountState *s)
     _actionForAccount.insert(s->account().data(), accountAction);
     accountAction->trigger();
 
-    connect(_actionGroup, &QActionGroup::triggered, this, [this, s, objectName]{ 
-        if(_actionGroup->currentWidget()->objectName() == QStringLiteral(objectName))
-        {
-            s->signIn(); 
-        }
+    connect(accountAction, &QActionGroup::triggered, this, [this, s, objectName]{ 
+        s->signIn(); 
     });
     connect(accountSettings, &AccountSettings::folderChanged, _gui, &ownCloudGui::slotFoldersChanged);
     connect(accountSettings, &AccountSettings::showIssuesList, this, &SettingsDialog::showIssuesList);
