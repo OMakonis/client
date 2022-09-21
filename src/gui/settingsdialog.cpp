@@ -457,7 +457,7 @@ void SettingsDialog::accountRemoved(const AccountStatePtr &s)
 void SettingsDialog::customizeStyle()
 {
     QString highlightColor("#f0f0f0");
-    QString highlightTextColor("red");
+    QString highlightTextColor("black");
     QString dark(palette().dark().color().name());
     QString background(palette().base().color().name());
     _ui->toolBar->setStyleSheet(TOOLBAR_CSS().arg(background, dark, highlightColor, highlightTextColor));
