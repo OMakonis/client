@@ -343,12 +343,12 @@ void SettingsDialog::setVisible(bool visible)
 
 void SettingsDialog::slotSwitchPage(QAction *action)
 {
-    _ui->stack->setCurrentWidget(_actionGroupWidgets.value(action));
     Account *account = static_cast<Account *>(sender());
     if(_ui->toolBar->toolTip() == account->displayName())
     {
         return;
     }
+    _ui->stack->setCurrentWidget(_actionGroupWidgets.value(action)); 
 }
 
 void SettingsDialog::showFirstPage()
