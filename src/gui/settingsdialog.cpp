@@ -185,15 +185,7 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     QAction *closeWindowAction = new QAction(this);
     closeWindowAction->setShortcut(QKeySequence("Ctrl+W"));
     connect(closeWindowAction, &QAction::triggered, this, &SettingsDialog::hide);
-    connect(_ui->toolBar->btn, &QToolButton::triggered, this, [this]{
-        Account *account = static_cast<Account *>(sender());
-        if(this->toolTip() == account->displayName())
-        {
-            ocApp()->gui()->runNewAccountWizard();
-        }
-        else ocApp()->gui()->runNewAccountWizard();
-        
-    });
+    
     addAction(closeWindowAction);
 
     setObjectName("Settings"); // required as group for saveGeometry call
@@ -255,6 +247,12 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     _actionGroupWidgets.insert(generalAction, generalSettings);
 
     connect(_actionGroup, &QActionGroup::triggered, this, &SettingsDialog::slotSwitchPage);
+
+    connect(_actionGroup, &QActionGroup::triggered, this, [this]{
+        Account *account = static_cast<Account *>(sender());
+        ocApp()->gui()->runNewAccountWizard();
+    });
+
 
     connect(AccountManager::instance(), &AccountManager::accountAdded,
         this, &SettingsDialog::accountAdded);
