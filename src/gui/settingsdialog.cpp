@@ -248,20 +248,8 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
 
     connect(_actionGroup, &QActionGroup::triggered, this, &SettingsDialog::slotSwitchPage);
 
-    // connect(_actionGroup, &QActionGroup::triggered, this, [this, _ui]{
-    //     Account *account = static_cast<Account *>(sender());
-    //     if(_ui->toolBar->toolTip() == account->displayName())
-    //     {
-    //         const auto reply = QMessageBox::question(this, tr("Quit %1").arg("appNameGui"),
-    //         tr("Are you sure you want to quit %1?").arg("appNameGui"),
-    //         QMessageBox::Yes | QMessageBox::No);
-    //         if (reply == QMessageBox::Yes) {
-    //             qApp->quit();
-    //         }
-    //     }
-    // });
-
-
+    connect(_actionGroup, &QActionGroup::triggered, this, &AccountSettings::slotCallLoginPage);
+      
     connect(AccountManager::instance(), &AccountManager::accountAdded,
         this, &SettingsDialog::accountAdded);
     connect(AccountManager::instance(), &AccountManager::accountRemoved,
@@ -344,7 +332,6 @@ void SettingsDialog::setVisible(bool visible)
 void SettingsDialog::slotSwitchPage(QAction *action)
 {
     _ui->stack->setCurrentWidget(_actionGroupWidgets.value(action)); 
-    emit pageChanged();
 }
 
 void SettingsDialog::showFirstPage()

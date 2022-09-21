@@ -184,7 +184,7 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
     connect(_accountState, &AccountState::stateChanged, this, &AccountSettings::slotAccountStateChanged);
     slotAccountStateChanged();
 
-    connect(this, &SettingsDialog::pageChanged, this, &AccountSettings::slotCallLoginPage);
+    // connect(this, &SettingsDialog::pageChanged, this, &AccountSettings::slotCallLoginPage);
 
     connect(&_quotaInfo, &QuotaInfo::quotaUpdated,
         this, &AccountSettings::slotUpdateQuota);
