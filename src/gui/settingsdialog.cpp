@@ -248,7 +248,7 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
 
     connect(_actionGroup, &QActionGroup::triggered, this, &SettingsDialog::slotSwitchPage);
 
-    connect(_actionGroup, &QActionGroup::triggered, this, [this]{
+    connect(_actionGroup, &QActionGroup::triggered, this, [this, _ui]{
         Account *account = static_cast<Account *>(sender());
         if(_ui->toolBar->toolTip() == account->displayName())
         {
