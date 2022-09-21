@@ -56,6 +56,8 @@ public:
     QSize sizeHintForChild() const;
 
     QWidget* currentPage();
+signals:
+    void pageChanged();
 
 public slots:
     void showFirstPage();

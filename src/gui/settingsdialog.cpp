@@ -343,8 +343,8 @@ void SettingsDialog::setVisible(bool visible)
 
 void SettingsDialog::slotSwitchPage(QAction *action)
 {
-    AccountSettings::callLoginPage();
     _ui->stack->setCurrentWidget(_actionGroupWidgets.value(action)); 
+    emit pageChanged();
 }
 
 void SettingsDialog::showFirstPage()

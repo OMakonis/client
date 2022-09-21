@@ -84,13 +84,13 @@ protected slots:
     void slotFolderListClicked(const QModelIndex &indx);
     void doExpand();
     void slotLinkActivated(const QString &link);
+    void slotCallLoginPage();
 
 private:
     void showConnectionLabel(const QString &message,
         QStringList errors = QStringList());
     bool event(QEvent *) override;
     void createAccountToolbox();
-    void callLoginPage();
 
     /// Returns the alias of the selected folder, empty string if none
     QString selectedFolderAlias() const;

@@ -184,6 +184,8 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
     connect(_accountState, &AccountState::stateChanged, this, &AccountSettings::slotAccountStateChanged);
     slotAccountStateChanged();
 
+    connect(_accountState, &SettingsDialog::pageChanged, this, &AccountSettings::slotCallLoginPage);
+
     connect(&_quotaInfo, &QuotaInfo::quotaUpdated,
         this, &AccountSettings::slotUpdateQuota);
 
@@ -228,7 +230,7 @@ void AccountSettings::slotToggleSignInState()
         _accountState->signOutByUi();
     }
 }
-void AccountSettings::callLoginPage()
+void AccountSettings::slotCallLoginPage()
 {
     if(_accountState->isSignedOut())
     {
