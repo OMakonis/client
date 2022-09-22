@@ -391,11 +391,6 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(accountSettings, &AccountSettings::showIssuesList, this, &SettingsDialog::showIssuesList);
     connect(s->account().data(), &Account::accountChangedAvatar, this, &SettingsDialog::slotAccountAvatarChanged);
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
-
-    // Refresh immediatly when getting online
-    connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
-
-    slotRefreshActivity(s); 
     connect(accountAction, &QAction::triggered, this, [s]{ 
         if (s->isSignedOut()) 
         {
@@ -403,6 +398,10 @@ void SettingsDialog::accountAdded(AccountState *s)
             s->signIn();
         }
     });
+    // Refresh immediatly when getting online
+    connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
+
+    if(s->isConnected()){slotRefreshActivity(s);}
 }
 
 void SettingsDialog::slotAccountAvatarChanged()
