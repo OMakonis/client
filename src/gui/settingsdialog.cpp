@@ -397,10 +397,10 @@ void SettingsDialog::accountAdded(AccountState *s)
 
     slotRefreshActivity(s); 
     connect(accountAction, &QAction::triggered, this, [s]{ 
-        if (_accountState->isSignedOut()) 
+        if (s->isSignedOut()) 
         {
-            _accountState->account()->resetRejectedCertificates();
-            _accountState->signIn();
+            s->account()->resetRejectedCertificates();
+            s->signIn();
         }
     });
 }
