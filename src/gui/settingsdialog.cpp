@@ -400,7 +400,11 @@ void SettingsDialog::accountAdded(AccountState *s)
         if (s->isSignedOut()) 
         {
             s->account()->resetRejectedCertificates();
-            s->signIn();
+            s->signIn();  
+        }
+        else 
+        {
+            s->signOutByUi();
         }
     });
 }
