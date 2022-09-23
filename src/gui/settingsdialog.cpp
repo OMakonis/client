@@ -401,7 +401,6 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
    
     slotRefreshActivity(s);
-    job->setTimeout
 }
 
 void SettingsDialog::slotAccountAvatarChanged()
