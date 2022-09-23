@@ -385,18 +385,19 @@ void SettingsDialog::accountAdded(AccountState *s)
     _actionGroupWidgets.insert(accountAction, accountSettings);
     _actionForAccount.insert(s->account().data(), accountAction);
     accountAction->trigger();
-
+    int timesCalled = 0;
    
     connect(accountSettings, &AccountSettings::folderChanged, _gui, &ownCloudGui::slotFoldersChanged);
     connect(accountSettings, &AccountSettings::showIssuesList, this, &SettingsDialog::showIssuesList);
     connect(s->account().data(), &Account::accountChangedAvatar, this, &SettingsDialog::slotAccountAvatarChanged);
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
-    connect(accountAction, &QAction::triggered, this, [s]{ 
-        if (s->isSignedOut()) 
+    connect(accountAction, &QAction::triggered, this, [s, timesCalled]{ 
+        if (s->isSignedOut() && timesCalled != 0) 
         {
             s->account()->resetRejectedCertificates();
             s->signIn();
         }
+        timesCalled++;
     });
     // Refresh immediatly when getting online
     connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
