@@ -391,7 +391,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(s->account().data(), &Account::accountChangedAvatar, this, &SettingsDialog::slotAccountAvatarChanged);
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
     connect(accountAction, &QAction::triggered, this, [s]{ 
-        if (s->isSignedOut()) 
+        if (s->isSignedOut() && !isAnySyncRunning()) 
         {
             s->account()->resetRejectedCertificates();
             s->signIn();
@@ -401,6 +401,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
    
     slotRefreshActivity(s);
+    job->setTimeout
 }
 
 void SettingsDialog::slotAccountAvatarChanged()
