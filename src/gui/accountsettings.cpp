@@ -198,7 +198,7 @@ AccountSettings::AccountSettings(AccountState *accountState, QWidget *parent)
 
 void AccountSettings::createAccountToolbox()
 {
-    #ifdef Q_OS_WIN
+    
     Sleep(uint(2000));
     QMenu *menu = new QMenu(ui->_accountToolbox);
 
