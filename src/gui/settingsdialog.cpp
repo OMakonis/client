@@ -385,7 +385,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     _actionGroupWidgets.insert(accountAction, accountSettings);
     _actionForAccount.insert(s->account().data(), accountAction);
     accountAction->trigger();
-    int timesCalled = 0;
+    mutable const int* timesCalled = 0;
    
     connect(accountSettings, &AccountSettings::folderChanged, _gui, &ownCloudGui::slotFoldersChanged);
     connect(accountSettings, &AccountSettings::showIssuesList, this, &SettingsDialog::showIssuesList);
@@ -401,7 +401,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     });
     // Refresh immediatly when getting online
     connect(s, &AccountState::isConnectedChanged, this, &SettingsDialog::slotRefreshActivityAccountStateSender);
-
+   
     if(s->isConnected()){slotRefreshActivity(s);}
 }
 
