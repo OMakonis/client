@@ -391,7 +391,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(s->account().data(), &Account::accountChangedAvatar, this, &SettingsDialog::slotAccountAvatarChanged);
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
     connect(accountAction, &QAction::triggered, this, [s]{ 
-        if (s->isSignedOut() && !isAnySyncRunning()) 
+        if (s->isSignedOut() && !FolderMan::instance()->isAnySyncRunning()) 
         {
             s->account()->resetRejectedCertificates();
             s->signIn();
