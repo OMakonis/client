@@ -391,7 +391,7 @@ void SettingsDialog::accountAdded(AccountState *s)
     connect(accountSettings, &AccountSettings::showIssuesList, this, &SettingsDialog::showIssuesList);
     connect(s->account().data(), &Account::accountChangedAvatar, this, &SettingsDialog::slotAccountAvatarChanged);
     connect(s->account().data(), &Account::accountChangedDisplayName, this, &SettingsDialog::slotAccountDisplayNameChanged);
-    connect(accountAction, &QAction::triggered, this, [s, timesCalled]{ 
+    connect(accountAction, &QAction::triggered, this, [s, mutable(timesCalled)]{ 
         if (s->isSignedOut() && timesCalled != 0) 
         {
             s->account()->resetRejectedCertificates();
