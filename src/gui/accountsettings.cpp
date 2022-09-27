@@ -232,14 +232,7 @@ void AccountSettings::slotToggleSignInState()
         _accountState->signOutByUi();
     }
 }
-void AccountSettings::slotCallLoginPage()
-{
-    if(_accountState->isSignedOut())
-    {
-        _accountState->account()->resetRejectedCertificates();
-        _accountState->signIn();
-    }
-}
+
 void AccountSettings::doExpand()
 {
     // Make sure at least the root items are expanded

@@ -106,7 +106,8 @@ public:
     /** A user-triggered sign out which disconnects, stops syncs
      * for the account and forgets the password. */
     void signOutByUi();
-
+    
+    bool isServerIssue() const;
     /** Tries to connect from scratch.
      *
      * Does nothing for signed out accounts.
