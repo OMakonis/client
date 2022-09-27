@@ -395,7 +395,7 @@ void AccountState::slotConnectionValidatorResult(ConnectionValidator::Status sta
         slotInvalidCredentials();
         break;
     case ConnectionValidator::SslError:
-        setState(NetworkError);
+        setState(SignedOut);
         break;
     case ConnectionValidator::ServiceUnavailable:
         _timeSinceMaintenanceOver.invalidate();
